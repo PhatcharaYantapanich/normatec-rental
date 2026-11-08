@@ -1,4 +1,4 @@
-const CACHE="nrp-d3f7252c";
+const CACHE="nrp-099f7eda";
 const SHELL=["./","index.html","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png","icons/favicon-32.png"];
 const CDN=["https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL).then(()=>Promise.all(CDN.map(u=>fetch(u,{mode:"cors"}).then(r=>r.ok&&c.put(u,r)).catch(()=>{}))))));self.skipWaiting();});

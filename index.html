@@ -318,6 +318,44 @@ tr:last-child td{border-bottom:0}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<style>
+/* phase-1 additions */
+.phase{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 12px;border-radius:var(--pill);background:var(--surface);color:var(--ink);width:max-content;max-width:100%}
+.phase b{font-family:var(--display);letter-spacing:.08em}
+.daychips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.daychip{appearance:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:var(--r);height:42px;cursor:pointer;font-family:var(--display);font-size:15px;transition:background .2s,transform .12s}
+.daychip:active{transform:scale(.94)}
+.daychip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.daychip.span{background:var(--surface-2)}
+.explain{font-size:13px;color:var(--muted);background:var(--surface);border-radius:var(--r);padding:10px 12px;margin:0}
+.explain b{color:var(--ink)}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer}
+.switch input{width:20px;height:20px;accent-color:var(--ink);flex:none}
+.switch .tx{display:grid;gap:2px;font-size:14px}
+.switch .tx small{color:var(--muted);font-size:12.5px}
+.ops{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.ops{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.wday{background:var(--surface);border-radius:var(--r);padding:10px 8px;display:grid;gap:8px;align-content:start;min-width:0}
+.wday .h{font-family:var(--display);font-weight:600;font-size:15px;display:flex;justify-content:space-between;align-items:baseline}
+.wday .h small{font-family:var(--body);font-weight:400;font-size:11.5px;color:var(--muted)}
+.slots{display:flex;flex-wrap:wrap;gap:4px}
+.slot{width:16px;height:16px;border-radius:4px;background:var(--surface-2)}
+.slot.on{background:var(--ink)}
+.slot.over{background:var(--bad)}
+.slot.maybe{background:var(--c5)}
+.trip{font-size:12px;line-height:1.35;padding:6px 7px;border-radius:5px;background:var(--bg);overflow-wrap:anywhere}
+.trip b{display:block;font-size:11px;letter-spacing:.04em}
+.trip.out b{color:var(--c2)}.trip.in b{color:var(--c3)}
+@media (max-width:760px){.week{grid-template-columns:1fr}.wday{grid-template-columns:90px 1fr;align-items:start}.wday .h{flex-direction:column}.wday .list{grid-column:2}}
+.seg-tabs{display:inline-grid;grid-auto-flow:column;gap:2px;background:var(--surface);border-radius:var(--pill);padding:3px}
+.seg-tabs button{border:0;background:transparent;border-radius:var(--pill);padding:7px 12px;font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.seg-tabs button[aria-pressed="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+@media (max-width:420px){.seg-tabs{grid-auto-flow:row;width:100%}}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:14px}
+.kv span:nth-child(odd){color:var(--muted)}
+.kv span:nth-child(even){text-align:right;font-weight:600}
+</style>
 <script>
 (function(){
 "use strict";
@@ -328,89 +366,120 @@ const LIBS = {
   xlsx:"https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
 };
 const IN_CLAUDE = !!(window.claude && window.claude.use);
+const WEEKS = 4.33;
 
 /* ================= constants ================= */
-const GROUPS = {
-  rent:   {label:"เช่ารายครั้ง",   short:"เช่า",    color:"--c1", desc:"ลูกค้ายืมเครื่องกลับบ้านเป็นวัน ๆ"},
-  sub:    {label:"สมาชิกรายเดือน", short:"สมาชิก",  color:"--c2", desc:"จ่ายทุกเดือน ใช้ที่บ้านตามสิทธิ์"},
-  club:   {label:"สโมสร",          short:"สโมสร",   color:"--c3", desc:"ขายผ่านยิม / ชมรม ใช้ที่สนามซ้อม"},
-  session:{label:"จ่ายต่อรอบ",     short:"ต่อรอบ",  color:"--c4", desc:"มาใช้ที่จุดบริการ ครั้งละ 30 นาที"}
+const KINDS = {
+  weekly:  {label:"ประจำสัปดาห์", short:"ประจำ",   color:"--c2", unit:"เดือน", desc:"ทีมเลือกวันใช้ทุกสัปดาห์ เช่น 2–3 วันหลังซ้อม จ่ายรายเดือน"},
+  match:   {label:"หลังแข่ง",      short:"หลังแข่ง", color:"--c3", unit:"นัด",   desc:"ส่งเครื่องถึงสนามวันแข่ง ใช้หลังเกม จ่ายต่อนัด"},
+  event:   {label:"ช่วงทัวร์นาเมนต์", short:"ทัวร์",   color:"--c4", unit:"รายการ", desc:"แข่งต่อเนื่องหลายวัน เช่น กีฬามหาวิทยาลัย จ่ายต่อรายการ"},
+  personal:{label:"บุคคลทั่วไป",    short:"บุคคล",   color:"--c1", unit:"ครั้ง",  desc:"นักวิ่ง/นักกีฬาเช่าเอง (เฟสถัดไป)"}
 };
+const DAYS = [["จ",1],["อ",2],["พ",3],["พฤ",4],["ศ",5],["ส",6],["อา",0]];
+const DAYNAME = {0:"อาทิตย์",1:"จันทร์",2:"อังคาร",3:"พุธ",4:"พฤหัสฯ",5:"ศุกร์",6:"เสาร์"};
+const DAYSHORT = {0:"อา",1:"จ",2:"อ",3:"พ",4:"พฤ",5:"ศ",6:"ส"};
+const ORDER = [1,2,3,4,5,6,0];
 const STATUS = [
-  {k:"target",  label:"เป้าหมาย",      prob:10, color:"--c5"},
-  {k:"contact", label:"ติดต่อแล้ว",    prob:25, color:"--c2"},
-  {k:"trial",   label:"นำเสนอ/ทดลอง",  prob:50, color:"--c4"},
-  {k:"won",     label:"ลูกค้าแล้ว",     prob:100,color:"--good"},
-  {k:"lost",    label:"ไม่สนใจ",       prob:0,  color:"--bad"}
+  {k:"target",  label:"เป้าหมาย",     prob:10, color:"--c5"},
+  {k:"contact", label:"ติดต่อแล้ว",   prob:25, color:"--c2"},
+  {k:"trial",   label:"สนใจ/ทดลอง",   prob:50, color:"--c4"},
+  {k:"won",     label:"ลูกค้าแล้ว",    prob:100,color:"--good"},
+  {k:"lost",    label:"ไม่สนใจ",      prob:0,  color:"--bad"}
 ];
-const CLUB_TYPES = ["วิ่ง","HYROX / ฟิตเนส","CrossFit","ศิลปะการต่อสู้","ฟุตบอล","ไตรกีฬา / จักรยาน","มหาวิทยาลัย","อื่น ๆ"];
+const CLUB_TYPES = ["ฟุตบอล","รักบี้","บาสเกตบอล","วอลเลย์บอล","กรีฑา / วิ่ง","ว่ายน้ำ","ศิลปะการต่อสู้","HYROX / ฟิตเนส","CrossFit","อื่น ๆ"];
 const REF_KINDS = {rent:"ราคาเช่า", session:"บริการต่อรอบ", sub:"สมาชิก / ผ่อน", retail:"ราคาเครื่อง", info:"ข้อมูลตลาด"};
 const UNITS = {day:"วัน", week:"สัปดาห์", month:"เดือน", session:"รอบ", item:"ชิ้น"};
 const UNIT_DAYS = {day:1, week:7, month:30};
+const MODES = [["won","ปิดแล้วเท่านั้น"],["weighted","ถ่วงตามโอกาส"],["all","ถ้าปิดได้ทุกที่"]];
 const ICON = {
   sum:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>',
   price:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
   list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
   club:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></svg>',
+  bike:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17h6l3-7h-4M14.5 10l4 7M12 6h3l1 4"/></svg>',
   more:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>',
   dl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
   share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>'
 };
 
+const DEFAULT_PACKAGES = [
+  {id:"k1", on:true, kind:"weekly", name:"Team 3 วัน / สัปดาห์", price:3490, days:[1,3,5], units:1, leave:false, athletes:8, desc:"ส่งเครื่องถึงที่ซ้อม 3 วันต่อสัปดาห์ ใช้หลังซ้อม รับคืนวันเดียวกัน"},
+  {id:"k2", on:true, kind:"weekly", name:"Team 2 วัน / สัปดาห์", price:2490, days:[2,4], units:1, leave:false, athletes:8, desc:"2 วันต่อสัปดาห์ หลังซ้อมหนัก"},
+  {id:"k3", on:true, kind:"match", name:"Match Recovery · หลังแข่ง", price:690, useDays:1, units:1, athletes:11, desc:"ส่งถึงสนามวันแข่ง ใช้หลังเกมได้ทั้งทีม รับคืนวันรุ่งขึ้น"},
+  {id:"k4", on:true, kind:"event", name:"Tournament Pack · 3 วัน", price:1690, useDays:3, units:1, athletes:10, desc:"ช่วงแข่งต่อเนื่อง เช่น กีฬามหาวิทยาลัย ฝากเครื่องไว้ตลอดรายการ"},
+  {id:"k5", on:false, kind:"personal", name:"Race Day · 1 วัน", price:490, useDays:1, units:1, athletes:1, qty:4, desc:"เฟสถัดไป: นักวิ่ง / บุคคลทั่วไปเช่าเอง"}
+];
+const CHULA_CLUBS = [
+  {id:"u1", name:"Chamchuri United F.C.", type:"ฟุตบอล", group:"จุฬาฯ", area:"สนามกีฬาจุฬาฯ", status:"trial", prob:50, packageId:"k1", days:[1,3,5], units:2, addMatch:true, matches:2, matchDay:6, events:0, athletes:10, km:2, start:1, contact:"", note:"สโมสรกึ่งอาชีพของจุฬาฯ (Thai League 3) · สนใจเช่า 2–3 วัน/สัปดาห์ และหลังแข่ง · จำนวนเครื่อง/นักกีฬาเป็นตัวอย่าง", url:"https://en.wikipedia.org/wiki/Chamchuri_United_F.C."},
+  {id:"u2", name:"ชมรมคาราเต้-โด จุฬาฯ", type:"ศิลปะการต่อสู้", group:"จุฬาฯ", area:"จุฬาฯ", status:"trial", prob:50, packageId:"k2", days:[2,4], units:1, matches:0, matchDay:6, events:0.5, athletes:6, km:1, start:1, contact:"", note:"นำร่องที่ชมรมเรา · ตัวเลขตัวอย่าง", url:""},
+  {id:"u3", name:"ทีมรักบี้ฟุตบอล จุฬาฯ", type:"รักบี้", group:"จุฬาฯ", area:"จุฬาฯ", status:"target", prob:10, packageId:"k3", days:[2,4], units:1, matches:2, matchDay:6, events:0, athletes:12, km:2, start:2, contact:"", note:"ชื่อทั่วไป ยืนยันชื่อทีมและผู้ติดต่อจริงก่อน", url:""},
+  {id:"u4", name:"ทีมบาสเกตบอล จุฬาฯ", type:"บาสเกตบอล", group:"จุฬาฯ", area:"จุฬาฯ", status:"target", prob:10, packageId:"k2", days:[1,4], units:1, matches:1, matchDay:6, events:0, athletes:8, km:2, start:2, contact:"", note:"ชื่อทั่วไป ยืนยันชื่อทีมและผู้ติดต่อจริงก่อน", url:""},
+  {id:"u5", name:"ชมรมกรีฑา จุฬาฯ", type:"กรีฑา / วิ่ง", group:"จุฬาฯ", area:"สนามกีฬาจุฬาฯ", status:"target", prob:10, packageId:"k2", days:[2,5], units:1, matches:0, matchDay:6, events:0.5, athletes:8, km:2, start:3, contact:"", note:"ชื่อทั่วไป ยืนยันชื่อชมรมจริงก่อน", url:""},
+  {id:"u6", name:"ทีมวอลเลย์บอล จุฬาฯ", type:"วอลเลย์บอล", group:"จุฬาฯ", area:"จุฬาฯ", status:"target", prob:10, packageId:"k3", days:[2,4], units:1, matches:1, matchDay:0, events:0, athletes:8, km:2, start:3, contact:"", note:"ชื่อทั่วไป ยืนยันชื่อทีมจริงก่อน", url:""},
+  {id:"u7", name:"ชมรมว่ายน้ำ จุฬาฯ", type:"ว่ายน้ำ", group:"จุฬาฯ", area:"สระว่ายน้ำจุฬาฯ", status:"target", prob:10, packageId:"k4", days:[1,3], units:1, matches:0, matchDay:6, events:0.5, athletes:6, km:2, start:3, contact:"", note:"ชื่อทั่วไป ยืนยันชื่อชมรมจริงก่อน", url:""}
+];
 const DEFAULT = {
-  v:2,
+  v:3,
   fx:{THB:1, USD:33, EUR:38, GBP:43.5, AUD:21.5, NZD:19.5, CAD:23.5, SGD:25.5},
-  machine:{count:4, price:34000, accessories:2500, lifeMonths:36, resalePct:25, sleeveCost:6000, sleeveEvery:18, maxUtil:85, sessionMin:35, openHours:8},
-  ops:{cleaning:50, consumable:20, tripCost:150, deliveryShare:50, damagePct:5, payFeePct:0, taxPct:0, rampMonths:4, rampStart:40, growthPct:2, horizon:36, targetMonths:12},
-  whatIf:{price:100, demand:100},
-  market:{localFactor:70, discount:30, sessionDiscount:60, markup:30},
-  value:{usesPerMonth:8, clinicPrice:0, buyPrice:39999},
-  policy:{deposit:10000, rtoCreditPct:50, lateFee:300, pauseDays:14},
-  sheet:{title:"Recovery Rental", sub:"เช่าเครื่อง Normatec ฟื้นฟูกล้ามเนื้อ ส่งถึงที่ในกรุงเทพฯ", contact:"LINE: @yourline", phone:"", showSave:true, showCond:true, layout:"a4", dark:false, hidden:[]},
-  setup:[{name:"โลโก้ + ถ่ายรูปสินค้า + สัญญา/waiver", amount:5000},{name:"แอดเปิดตัว + บูธทดลองที่สนามแข่ง", amount:3000}],
-  monthly:[{name:"การตลาดออนไลน์ (FB / IG / TikTok)", amount:2000},{name:"LINE OA + โทรศัพท์", amount:300},{name:"คนช่วยส่งของ / ทำความสะอาด", amount:0}],
-  programs:[
-    {id:"p1", on:true, group:"rent",    name:"Race Day · 1 วัน",              price:490,  per:"ครั้ง", qty:6,  useType:"days",     use:1.5, uses:2,  handovers:1,    revShare:0,  minTerm:0, desc:"เช่าวันแข่งหรือวันหลังแข่ง รับ-ส่งถึงที่"},
-    {id:"p2", on:true, group:"rent",    name:"Race Weekend · 3 วัน",          price:1190, per:"ครั้ง", qty:4,  useType:"days",     use:3.5, uses:4,  handovers:1,    revShare:0,  minTerm:0, desc:"ศุกร์–จันทร์ ช่วงงานวิ่ง / HYROX / แข่งกีฬา"},
-    {id:"p3", on:true, group:"rent",    name:"Training Week · 7 วัน",         price:1990, per:"ครั้ง", qty:2,  useType:"days",     use:7.5, uses:7,  handovers:1,    revShare:0,  minTerm:0, desc:"สัปดาห์ซ้อมหนัก / แคมป์เก็บตัว"},
-    {id:"p4", on:true, group:"sub",     name:"Home Monthly · เครื่องอยู่บ้าน",  price:3900, per:"เดือน", qty:1,  useType:"days",     use:30,  uses:20, handovers:0.34, revShare:0,  minTerm:3, desc:"ใช้ได้ทุกวัน สัญญาขั้นต่ำ 3 เดือน"},
-    {id:"p5", on:true, group:"sub",     name:"Weekend Pass · ทุกเสาร์-อาทิตย์", price:2490, per:"เดือน", qty:1,  useType:"days",     use:10,  uses:8,  handovers:4,    revShare:0,  minTerm:1, desc:"รับเครื่องศุกร์เย็น คืนจันทร์เช้า 4 ครั้ง/เดือน"},
-    {id:"p6", on:true, group:"club",    name:"Club Pass · 8 รอบ/เดือน",        price:1490, per:"เดือน", qty:15, useType:"sessions", use:8,   uses:8,  handovers:0,    revShare:15, minTerm:1, desc:"ใช้ที่สนามซ้อมของสโมสร 8 รอบต่อเดือน"},
-    {id:"p7", on:true, group:"club",    name:"Club Station · วางเครื่องประจำ",  price:6900, per:"เดือน", qty:0,  useType:"days",     use:30,  uses:60, handovers:0.17, revShare:0,  minTerm:6, desc:"สโมสรเช่าเครื่องไปวางให้สมาชิกใช้ สัญญา 6 เดือน"},
-    {id:"p8", on:true, group:"session", name:"Drop-in · 30 นาที",              price:350,  per:"ครั้ง", qty:40, useType:"sessions", use:1,   uses:1,  handovers:0,    revShare:15, minTerm:0, desc:"จ่ายต่อรอบที่จุดบริการ ไม่ต้องสมัครสมาชิก"}
-  ],
-  clubs:(SEED&&SEED.clubs)||[],
+  machine:{count:2, price:34000, accessories:2500, lifeMonths:36, resalePct:25, sleeveCost:6000, sleeveEvery:18},
+  delivery:{base:"สามย่าน / จุฬาฯ", kmCost:1.5, tripMin:25, hourValue:0, unitsPerTrip:2, cleaning:20, consumable:10, personalKm:8},
+  ops:{damagePct:5, payFeePct:0, taxPct:0, horizon:24, targetMonths:12, mode:"weighted", scope:"chula"},
+  whatIf:{price:100},
+  market:{localFactor:70, discount:30, markup:30},
+  value:{clinicPrice:0},
+  policy:{deposit:5000, lateFee:300, rtoCreditPct:50, cancelHours:24},
+  sheet:{title:"Team Recovery", sub:"เช่าเครื่อง Normatec ให้ทีมกีฬา ส่งถึงสนามซ้อมในจุฬาฯ", contact:"LINE: @yourline", phone:"", showSave:true, showCond:true, layout:"a4", dark:false, hidden:[]},
+  setup:[{name:"สัญญาเช่า / waiver + ถ่ายรูป", amount:2000},{name:"กระเป๋าใส่เครื่องสำหรับมอเตอร์ไซค์", amount:1500}],
+  monthly:[{name:"การตลาด / ทดลองใช้ฟรี", amount:1000},{name:"LINE OA + โทรศัพท์", amount:300}],
+  packages: DEFAULT_PACKAGES,
+  clubs: CHULA_CLUBS.concat(((SEED&&SEED.clubs)||[]).map(c=>Object.assign({group:"นอกจุฬาฯ (เฟส 2)"},c))),
   refs:(SEED&&SEED.refs)||[]
 };
 const PAGES = [
-  {k:"summary", label:"สรุป",       icon:"sum",   bot:true},
-  {k:"pricing", label:"ตั้งราคา",    icon:"price", bot:true},
-  {k:"sheet",   label:"ใบราคา",     icon:"list",  bot:true},
-  {k:"clubs",   label:"ลูกค้า",      icon:"club",  bot:true},
-  {k:"market",  label:"ตลาด"},
-  {k:"costs",   label:"ต้นทุน"},
-  {k:"config",  label:"ตั้งค่า"}
+  {k:"summary",  label:"สรุป",      icon:"sum",   bot:true},
+  {k:"packages", label:"แพ็กเกจ",   icon:"price", bot:true},
+  {k:"clubs",    label:"สโมสร",     icon:"club",  bot:true},
+  {k:"week",     label:"ตารางส่ง",  icon:"bike",  bot:true},
+  {k:"sheet",    label:"ใบราคา"},
+  {k:"market",   label:"ตลาด"},
+  {k:"costs",    label:"ต้นทุน"},
+  {k:"config",   label:"ตั้งค่า"}
 ];
 
 /* ================= state ================= */
 const clone = o => JSON.parse(JSON.stringify(o));
+function normClub(c){
+  const d={group:"นอกจุฬาฯ (เฟส 2)",area:"",status:"target",prob:10,packageId:"k3",days:[2,4],units:1,addMatch:false,matches:2,matchDay:6,events:0,athletes:8,km:3,start:1,contact:"",note:"",url:""};
+  const x=Object.assign(d,c);
+  if(!DEFAULT_PACKAGES.some(p=>p.id===x.packageId) && !(x.packageId||"").startsWith("k")) x.packageId="k3";
+  if(!Array.isArray(x.days)) x.days=[2,4];
+  return x;
+}
 function migrate(x){
   const d = clone(DEFAULT);
   if(!x || typeof x!=="object") return d;
-  for(const k of Object.keys(d)){
-    if(x[k]===undefined) continue;
-    if(Array.isArray(d[k])) d[k] = Array.isArray(x[k]) ? x[k] : d[k];
-    else if(d[k] && typeof d[k]==="object") d[k] = Object.assign({}, d[k], x[k]);
-    else d[k] = x[k];
+  const keepObj = ["fx","machine","delivery","ops","whatIf","market","value","policy","sheet"];
+  keepObj.forEach(k=>{ if(x[k] && typeof x[k]==="object") d[k]=Object.assign({}, d[k], x[k]); });
+  ["setup","monthly"].forEach(k=>{ if(Array.isArray(x[k])) d[k]=x[k]; });
+  if(Array.isArray(x.refs) && x.refs.length) d.refs=x.refs;
+  if((x.v||1)>=3){
+    if(Array.isArray(x.packages)) d.packages=x.packages;
+    if(Array.isArray(x.clubs)) d.clubs=x.clubs.map(normClub);
+  } else {
+    // from v2: keep machine price/count but switch to the phase-1 model; old clubs become phase-2 prospects
+    const old = Array.isArray(x.clubs)?x.clubs:[];
+    d.clubs = CHULA_CLUBS.map(clone).concat(old.filter(c=>!/คาราเต้/.test(c.name||"")).map(c=>normClub(Object.assign({},c,{group:"นอกจุฬาฯ (เฟส 2)",packageId:"k3",seats:undefined}))));
+    if(x.sheet){ d.sheet.hidden=[]; d.sheet.title=DEFAULT.sheet.title; d.sheet.sub=DEFAULT.sheet.sub; }
+    if(x.machine){ d.machine.count = DEFAULT.machine.count; }
   }
-  d.v = 2;
   d.refs.forEach(r=>{ if(r && r.bench===undefined) r.bench = !(r.kind==="rent" && /MP Massage|Morzine/.test(r.name||"")); });
+  d.v = 3;
   return d;
 }
 let S = clone(DEFAULT);
 try{ const ls = localStorage.getItem("nrp-state"); if(ls) S = migrate(JSON.parse(ls)); }catch(e){}
 let page = "summary";
-let flt = {clubStatus:"all", refScope:"all", refKind:"all", progGroup:"all"};
+let flt = {clubGroup:"จุฬาฯ", clubStatus:"all", refScope:"all", refKind:"all"};
 const charts = {};
 const undoStack = [];
 let undoArmed = true, undoTimer = null;
@@ -423,13 +492,12 @@ const n = v => { const x = Number(v); return isFinite(x) ? x : 0; };
 const fmt = (v,d=0) => (isFinite(v)?Number(v):0).toLocaleString("th-TH",{maximumFractionDigits:d});
 const baht = v => (v<0?"-":"") + "฿" + fmt(Math.abs(Math.round(v)));
 const pct = v => fmt(v*100,0) + "%";
-const monthsTxt = v => v==null||!isFinite(v) ? "ยังไม่คืนทุน" : v<1 ? "ไม่ถึง 1 เดือน" : fmt(v,1)+" เดือน";
 const uid = p => p + Math.random().toString(36).slice(2,8);
 const cssv = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888";
 const getPath = (o,p) => p.split(".").reduce((a,k)=>a==null?a:a[k], o);
 function setPath(o,p,v){ const ks=p.split("."); let t=o; for(let i=0;i<ks.length-1;i++){ t=t[ks[i]]; if(t==null) return; } t[ks[ks.length-1]]=v; }
-const progById = id => S.programs.find(p=>p.id===id);
-const median = a => { if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+const pkgById = id => S.packages.find(p=>p.id===id);
+const median = a => { const b=a.filter(x=>isFinite(x)); if(!b.length) return 0; const s=[...b].sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
 const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
 function nicePrice(x){
   if(!(x>0)) return 0;
@@ -440,16 +508,123 @@ function nicePrice(x){
 }
 const priceStep = p => p<1000?10 : p<5000?50 : 100;
 const todayTH = () => new Date().toLocaleDateString("th-TH",{day:"numeric",month:"long",year:"numeric"});
+const daysTxt = arr => ORDER.filter(d=>(arr||[]).includes(d)).map(d=>DAYSHORT[d]).join(" · ") || "ยังไม่เลือกวัน";
 function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove("show"),2200); }
 
 /* ================= model ================= */
-function machineDays(p){ const m=S.machine; return p.useType==="sessions" ? n(p.use)*n(m.sessionMin)/Math.max(1,n(m.openHours)*60) : n(p.use); }
-function usesOf(p){ return p.useType==="sessions" ? n(p.use) : n(p.uses); }
-function varUnit(p){
-  const o=S.ops;
-  return n(p.handovers)*(n(o.cleaning) + n(o.deliveryShare)/100*2*n(o.tripCost)) + (p.useType==="sessions" ? n(p.use)*n(o.consumable) : 0);
+/* A "booking" = what one club (or the personal channel) buys from one package. */
+function spanDays(days){ const idx=ORDER.map((d,i)=>days.includes(d)?i:-1).filter(i=>i>=0); return idx.length? idx[idx.length-1]-idx[0]+1 : 0; }
+function bookingOf(pkg, src){
+  // src: club (or package defaults when no club). Returns per-month quantities for one booking.
+  const D=S.delivery, units=Math.max(1,n(src.units||pkg.units||1)), km=n(src.km!=null?src.km:(pkg.kind==="personal"?D.personalKm:2));
+  const perTrip = Math.ceil(units/Math.max(1,n(D.unitsPerTrip)));
+  let occ=1, useDays=0, busyDays=0, trips=0, pickups=0;
+  if(pkg.kind==="weekly"){
+    const days = (src.days&&src.days.length)? src.days : (pkg.days||[]);
+    useDays = days.length*WEEKS;
+    if(pkg.leave){ busyDays = spanDays(days)*WEEKS; trips = days.length? 2*WEEKS : 0; pickups = days.length? WEEKS : 0; }
+    else { busyDays = useDays; trips = 2*days.length*WEEKS; pickups = days.length*WEEKS; }
+    occ = 1;
+  } else if(pkg.kind==="match"){
+    occ = n(src.matches!=null?src.matches:2); const d=Math.max(1,n(pkg.useDays));
+    useDays = occ*d; busyDays = occ*d; trips = 2*occ; pickups = occ;
+  } else if(pkg.kind==="event"){
+    occ = n(src.events!=null?src.events:0.5); const d=Math.max(1,n(pkg.useDays));
+    useDays = occ*d; busyDays = occ*d; trips = 2*occ; pickups = occ;
+  } else { // personal
+    occ = n(pkg.qty); const d=Math.max(1,n(pkg.useDays));
+    useDays = occ*d; busyDays = occ*(d+0.5); trips = 2*occ; pickups = occ;
+  }
+  const tripCost = km*2*n(D.kmCost) + n(D.tripMin)/60*n(D.hourValue);
+  const delivery = trips*perTrip*tripCost;
+  const cleaning = pickups*units*n(D.cleaning);
+  const consum = useDays*units*n(D.consumable);
+  const price = n(pkg.price)*n(S.whatIf.price)/100;
+  const revenue = (pkg.kind==="weekly" ? price : price*occ)*units;
+  const athletes = Math.max(1, n(src.athletes||pkg.athletes||1));
+  return {pkg, units, km, occ, useDays, busyDays:busyDays*units, trips:trips*perTrip, km_month:trips*perTrip*km*2, minutes:trips*perTrip*n(D.tripMin),
+          delivery, cleaning, consum, variable:delivery+cleaning+consum, revenue,
+          perAthlete: useDays>0 ? revenue/(useDays*athletes) : null, athletes};
 }
-const clubSeats = pid => S.clubs.filter(c=>c.status==="won" && c.programId===pid).reduce((a,c)=>a+n(c.seats),0);
+const matchPkg = () => S.packages.find(p=>p.on && p.kind==="match");
+function clubWeight(c, month){
+  if(c.status==="lost") return 0;
+  if(S.ops.scope==="chula" && c.group!=="จุฬาฯ") return 0;
+  if(month!=null && month < Math.max(1,n(c.start))) return 0;
+  const mode=S.ops.mode;
+  if(c.status==="won") return 1;
+  if(mode==="won") return 0;
+  if(mode==="all") return 1;
+  return n(c.prob)/100;
+}
+function compute(ov={}){
+  const m=S.machine, o=S.ops;
+  const count = ov.count ?? n(m.count), price = ov.price ?? n(m.price);
+  const H = Math.max(1, Math.min(60, Math.round(n(o.horizon))||24));
+  const setup = S.setup.reduce((a,x)=>a+n(x.amount),0);
+  const investMachines = count*(price+n(m.accessories));
+  const invest = investMachines + setup;
+  const sleeveM = count*n(m.sleeveCost)/Math.max(1,n(m.sleeveEvery));
+  const fixed = S.monthly.reduce((a,x)=>a+n(x.amount),0) + sleeveM;
+  const depM = investMachines*(1-n(m.resalePct)/100)/Math.max(1,n(m.lifeMonths));
+  const lossPct = (n(o.damagePct)+n(o.payFeePct))/100;
+  const lines = [];
+  S.clubs.forEach(c=>{ const p=pkgById(c.packageId); if(p && p.on && p.kind!=="personal") lines.push({club:c, b:bookingOf(p,c)});
+    const mp=matchPkg(); if(c.addMatch && mp && p && p.kind!=="match" && n(c.matches)>0) lines.push({club:c, b:bookingOf(mp,c)}); });
+  S.packages.filter(p=>p.on && p.kind==="personal" && n(p.qty)>0).forEach(p=>lines.push({club:null, b:bookingOf(p,{})}));
+  function month(mi){
+    let rev=0,vari=0,busy=0,trips=0,kms=0,mins=0; const byClub={}, byPkg={};
+    lines.forEach(L=>{
+      const w = L.club ? clubWeight(L.club, mi) : 1;
+      if(!w) return;
+      const b=L.b; rev+=b.revenue*w; vari+=b.variable*w; busy+=b.busyDays*w; trips+=b.trips*w; kms+=b.km_month*w; mins+=b.minutes*w;
+      const k=L.club?L.club.id:"personal-"+b.pkg.id; byClub[k]=(byClub[k]||0)+b.revenue*w;
+      byPkg[b.pkg.id]=(byPkg[b.pkg.id]||0)+b.revenue*w;
+    });
+    const loss=rev*lossPct, ebitda=rev-vari-loss-fixed, tax=Math.max(0,ebitda-depM)*n(o.taxPct)/100;
+    return {rev,vari,loss,fixed,ebitda,tax,net:ebitda-tax,busy,trips,kms,mins,byClub,byPkg};
+  }
+  const series=[]; let cum=-invest, pay=null;
+  for(let i=1;i<=H;i++){ const mo=month(i); const prev=cum; cum+=mo.net; mo.cum=cum; mo.i=i; if(pay==null&&cum>=0) pay=(i-1)+(mo.net>0?(-prev)/mo.net:0); series.push(mo); }
+  const full = month(null);
+  const cap = count*30;
+  const capDay = (price+n(m.accessories))/Math.max(1,n(o.targetMonths)*30*0.7) + (fixed/Math.max(1,count))/(30*0.7);
+  return {count, price, invest, investMachines, setup, fixed, sleeveM, lossPct, lines, series, full, H, cap, util: cap? full.busy/cap : 0,
+          payback:pay, end:cum, resale:count*price*n(m.resalePct)/100, capDay, weekly: weekLoad()};
+}
+/* machines needed on each weekday (weekly bookings + matches, weighted) */
+function weekLoad(){
+  const need={0:0,1:0,2:0,3:0,4:0,5:0,6:0}, sure={0:0,1:0,2:0,3:0,4:0,5:0,6:0}, trips={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+  S.clubs.forEach(c=>{
+    const p=pkgById(c.packageId); if(!p||!p.on) return;
+    const w=clubWeight(c,null); if(!w) return;
+    const units=Math.max(1,n(c.units||p.units||1));
+    const add=(d,u,certain)=>{ need[d]+=u*w; if(certain) sure[d]+=u*w; };
+    if(p.kind==="weekly"){
+      const days=(c.days&&c.days.length)?c.days:(p.days||[]);
+      if(p.leave && days.length){
+        const idx=ORDER.map((d,i)=>days.includes(d)?i:-1).filter(i=>i>=0);
+        for(let i=idx[0];i<=idx[idx.length-1];i++) add(ORDER[i],units,true);
+        trips[ORDER[idx[0]]].push({dir:"out",c,units,w}); trips[ORDER[idx[idx.length-1]]].push({dir:"in",c,units,w});
+      } else days.forEach(d=>{ add(d,units,true); trips[d].push({dir:"out",c,units,w}); trips[d].push({dir:"in",c,units,w}); });
+    }
+    const mp = p.kind==="match" ? p : (c.addMatch ? matchPkg() : null);
+    if(mp && n(c.matches)>0){
+      const chance=Math.min(1,n(c.matches)/WEEKS);
+      for(let k=0;k<Math.max(1,n(mp.useDays));k++) add((n(c.matchDay)+k)%7, units*chance, false);
+      trips[n(c.matchDay)%7].push({dir:"out",c,units,w,maybe:chance,match:true});
+      trips[(n(c.matchDay)+Math.max(1,n(mp.useDays)))%7].push({dir:"in",c,units,w,maybe:chance,match:true});
+    }
+  });
+  const peak=Math.max(...Object.values(need));
+  return {need,sure,trips,peak};
+}
+function floorFor(pkg, R){
+  const b=bookingOf(pkg,{});
+  const per = pkg.kind==="weekly" ? 1 : Math.max(.0001,b.occ);
+  const u=Math.max(1,b.units), cost = (b.variable + b.busyDays*R.capDay)/per/u;
+  return {target: cost/Math.max(.05,1-R.lossPct), cash: (b.variable/per/u)/Math.max(.05,1-R.lossPct)};
+}
 const refTHB = r => n(r.price)*n(S.fx[r.currency]||1);
 const refDays = r => UNIT_DAYS[r.unit] ? Math.max(1,n(r.qty))*UNIT_DAYS[r.unit] : null;
 const refPerDay = r => refDays(r) ? refTHB(r)/refDays(r) : null;
@@ -459,94 +634,22 @@ function clinicAvg(){
   const xs = S.refs.filter(r=>r.kind==="session" && r.inAvg && n(r.price)>0).map(refPer30).filter(Boolean);
   return xs.length ? avg(xs) : 1250;
 }
-function rentalLen(p){
-  if(p.useType!=="days") return 0;
-  const per = n(p.handovers)>=1 ? n(p.use)/n(p.handovers) : n(p.use);
-  return Math.max(1, Math.floor(per));
+function marketFor(pkg){
+  const b=bookingOf(pkg,{});
+  const rents=S.refs.filter(r=>r.kind==="rent"&&r.bench!==false&&n(r.price)>0&&refDays(r));
+  const blen = pkg.kind==="weekly" ? (pkg.leave?7:1) : Math.max(1,n(pkg.useDays));
+  let pick = blen<=2 ? rents.filter(r=>refDays(r)<=2) : blen<=5 ? rents.filter(r=>refDays(r)>=2&&refDays(r)<=5) : rents.filter(r=>refDays(r)>=6&&refDays(r)<=20);
+  if(!pick.length) pick=rents;
+  const perDay = median(pick.map(refPerDay))*n(S.market.localFactor)/100;
+  const per = pkg.kind==="weekly" ? 1 : Math.max(.0001,b.occ);
+  const days = b.busyDays/per/Math.max(1,b.units);
+  return {price: perDay*days, perDay, days, refs:pick,
+    basis:`ค่าเช่าต่างประเทศ × ${fmt(S.market.localFactor)}% ≈ ${baht(perDay)} / เครื่อง / วัน × ${fmt(days,1)} วัน`,
+    clinic: clinicAvg()*n(pkg.athletes||1)*(b.useDays/per)};
 }
-/* market benchmark for one program, with the references it used */
-function marketFor(p){
-  if(p.useType==="sessions"){
-    if(n(p.use)>1){
-      const packs = S.refs.filter(r=>r.kind==="session" && r.bench!==false && n(r.qty)>1 && n(r.price)>0);
-      const per = packs.length ? median(packs.map(refPer30))*n(S.market.localFactor)/100 : clinicAvg()*0.6;
-      return {price: per*n(p.use), perUnit: per, basis: packs.length ? `แพ็กหลายรอบในต่างประเทศ × ${fmt(S.market.localFactor)}% ≈ ${baht(per)} / รอบ × ${fmt(p.use)} รอบ` : `คลินิกไทย × 60% ≈ ${baht(per)} / รอบ × ${fmt(p.use)} รอบ`, refs: packs, local:false};
-    }
-    const thR = S.refs.filter(r=>r.kind==="session" && r.inAvg && n(r.price)>0);
-    const per = clinicAvg();
-    return {price: per, perUnit: per, basis:`คลินิกในไทย ${baht(per)} / 30 นาที`, refs: thR, local:true};
-  }
-  const L = rentalLen(p);
-  const rents = S.refs.filter(r=>r.kind==="rent" && r.bench!==false && n(r.price)>0 && refDays(r));
-  let pick;
-  if(L<=2) pick = rents.filter(r=>refDays(r)<=2);
-  else if(L<=5) pick = rents.filter(r=>refDays(r)>=2 && refDays(r)<=5);
-  else if(L<=20) pick = rents.filter(r=>refDays(r)>=6 && refDays(r)<=20);
-  else pick = rents.filter(r=>refDays(r)>=21);
-  if(!pick.length) pick = rents;
-  const th = pick.filter(r=>r.country==="ไทย");
-  const use = th.length ? th : pick;
-  const local = th.length>0;
-  const perDay = median(use.map(refPerDay)) * (local?1:n(S.market.localFactor)/100);
-  const days = p.per==="เดือน" ? n(p.use) : L;
-  return {price: perDay*days, perUnit: perDay, basis:`${local?"ตลาดไทย":"ตลาดต่างประเทศ × "+fmt(S.market.localFactor)+"%"} ≈ ${baht(perDay)} / วัน × ${fmt(days)} วัน`, refs: use, local};
-}
-
-function compute(ov={}){
-  const m=S.machine, o=S.ops;
-  const count = ov.count ?? n(m.count), price = ov.price ?? n(m.price);
-  const pm = ov.priceMul ?? n(S.whatIf.price)/100, dm = ov.demandMul ?? n(S.whatIf.demand)/100;
-  const H = Math.max(1, Math.min(60, Math.round(n(o.horizon))||36));
-  const capacity = count*30*n(m.maxUtil)/100;
-  const setup = S.setup.reduce((a,x)=>a+n(x.amount),0);
-  const investMachines = count*(price+n(m.accessories));
-  const invest = investMachines + setup;
-  const sleeveM = count*n(m.sleeveCost)/Math.max(1,n(m.sleeveEvery));
-  const fixed = S.monthly.reduce((a,x)=>a+n(x.amount),0) + sleeveM;
-  const depM = investMachines*(1-n(m.resalePct)/100)/Math.max(1,n(m.lifeMonths));
-  const lossPct = (n(o.damagePct)+n(o.payFeePct))/100;
-  const progs = S.programs.filter(p=>p.on).map(p=>{
-    const override = ov.progPrice && ov.progPrice[p.id]!=null ? ov.progPrice[p.id] : n(p.price);
-    return {p, base:n(p.qty)+clubSeats(p.id), unitPrice:override*pm, md:machineDays(p), vu:varUnit(p), share:n(p.revShare)/100, uses:usesOf(p)};
-  });
-  function month(r,g){
-    let dmd=0; progs.forEach(x=>{ x.q=x.base*dm*r*g; dmd+=x.q*x.md; });
-    const scale = dmd>capacity && dmd>0 ? capacity/dmd : 1;
-    let rev=0,vc=0,sh=0; const by={};
-    progs.forEach(x=>{ const q=x.q*scale, rv=q*x.unitPrice, v=q*x.vu, s=rv*x.share; rev+=rv; vc+=v; sh+=s; by[x.p.id]={q,rev:rv,profit:rv-v-s-rv*lossPct}; });
-    const loss=rev*lossPct, ebitda=rev-vc-sh-loss-fixed, tax=Math.max(0,ebitda-depM)*n(o.taxPct)/100;
-    return {rev,vc,sh,loss,fixed,ebitda,tax,net:ebitda-tax,by,dmd,used:Math.min(dmd,capacity),sold:scale<1};
-  }
-  const rampN=Math.max(1,Math.round(n(o.rampMonths))), r0=n(o.rampStart)/100, gr=n(o.growthPct)/100;
-  const series=[]; let cum=-invest, pay=null;
-  for(let i=1;i<=H;i++){
-    const r = rampN<=1?1:Math.min(1, r0+(1-r0)*(i-1)/(rampN-1));
-    const mo = month(r, Math.pow(1+gr,i-1));
-    const prev=cum; cum+=mo.net; mo.cum=cum; mo.i=i;
-    if(pay==null && cum>=0) pay=(i-1)+(mo.net>0?(-prev)/mo.net:0);
-    series.push(mo);
-  }
-  const st = month(1,1);
-  const util = capacity>0 ? st.dmd/capacity : 0;
-  const perMachine = 30*n(m.maxUtil)/100;
-  const need = perMachine>0 ? Math.ceil(st.dmd/perMachine) : 0;
-  // cost per used machine-day (capital paid back in target months + fixed)
-  const usedMD = Math.max(1, st.used);
-  const costPerMD = (invest/Math.max(1,n(o.targetMonths)) + fixed)/usedMD;
-  return {count, price, invest, investMachines, setup, fixed, sleeveM, capacity, progs, series, st, util, need, H, costPerMD, lossPct,
-          payback:pay, end:cum, resale:count*price*n(m.resalePct)/100,
-          customers: progs.reduce((a,x)=>a+((st.by[x.p.id]||{}).q||0),0)};
-}
-function floorFor(p, R){
-  const share=n(p.revShare)/100, denom=Math.max(.05, 1-share-R.lossPct);
-  return {target:(varUnit(p)+machineDays(p)*R.costPerMD)/denom, cash: varUnit(p)/denom};
-}
-function suggestFor(p, R){
-  const mk = marketFor(p), fl = floorFor(p,R);
-  const disc = p.useType==="sessions" ? n(S.market.sessionDiscount) : n(S.market.discount);
-  const byMarket = mk.price*(1-disc/100);
-  const byCost = fl.target*(1+n(S.market.markup)/100);
-  return {mk, fl, disc, value: nicePrice(Math.max(byMarket, fl.target)), byMarket:nicePrice(byMarket), byCost:nicePrice(byCost)};
+function suggestFor(pkg,R){
+  const mk=marketFor(pkg), fl=floorFor(pkg,R);
+  return {mk, fl, value:nicePrice(Math.max(mk.price*(1-n(S.market.discount)/100), fl.target)), byMarket:nicePrice(mk.price*(1-n(S.market.discount)/100)), byCost:nicePrice(fl.target*(1+n(S.market.markup)/100))};
 }
 
 /* ================= storage ================= */
@@ -578,32 +681,23 @@ function connect(){
       const json=JSON.stringify((snap.data()||{}).state||{});
       if(saveTimer||saving||json===lastJSON){ if(!saveTimer&&!saving) setSave("ok","บันทึกแล้ว"); return; }
       const a=document.activeElement; if(a && a.matches && a.matches("input,textarea,select")) return;
-      lastJSON=json; S=migrate(JSON.parse(json)); persistLocal(); setSave("ok","บันทึกแล้ว"); render(false);
+      lastJSON=json; const before=JSON.stringify(S); S=migrate(JSON.parse(json)); persistLocal(); setSave("ok","บันทึกแล้ว");
+      if((JSON.parse(json).v||1)<3) scheduleSave();
+      if(before!==JSON.stringify(S)) render(false);
     }, ()=>{ clearTimeout(loadTimer); setSave("err","ใช้ข้อมูลในเครื่อง"); docRef=null; });
   }).catch(()=>setSave("local","บันทึกในเครื่อง"));
 }
 
 /* ================= undo + mutate ================= */
-function snapshotForUndo(){
-  if(!undoArmed) return;
-  undoStack.push(JSON.stringify(S)); if(undoStack.length>40) undoStack.shift();
-  undoArmed=false; $("#undoBtn").disabled=false;
-}
+function snapshotForUndo(){ if(!undoArmed) return; undoStack.push(JSON.stringify(S)); if(undoStack.length>40) undoStack.shift(); undoArmed=false; $("#undoBtn").disabled=false; }
 function rearmUndo(){ clearTimeout(undoTimer); undoTimer=setTimeout(()=>{undoArmed=true;},1200); }
-function mutate(fn, opts={}){
-  snapshotForUndo(); fn(); rearmUndo(); scheduleSave();
-  if(opts.render) render(false); else refresh();
-}
-function undo(){
-  const prev=undoStack.pop(); if(!prev) return;
-  S=migrate(JSON.parse(prev)); undoArmed=true; scheduleSave(); render(false);
-  $("#undoBtn").disabled=!undoStack.length; toast("ย้อนกลับแล้ว");
-}
+function mutate(fn, opts={}){ snapshotForUndo(); fn(); rearmUndo(); scheduleSave(); if(opts.render) render(false); else refresh(); }
+function undo(){ const prev=undoStack.pop(); if(!prev) return; S=migrate(JSON.parse(prev)); undoArmed=true; scheduleSave(); closeSheet(true); render(false); $("#undoBtn").disabled=!undoStack.length; toast("ย้อนกลับแล้ว"); }
 
 /* ================= UI pieces ================= */
-function groupTag(g){ const G=GROUPS[g]||GROUPS.rent; return `<span class="tag"><span class="dot" style="background:var(${G.color})"></span>${G.label}</span>`; }
+function kindTag(k){ const K=KINDS[k]||KINDS.weekly; return `<span class="tag"><span class="dot" style="background:var(${K.color})"></span>${K.label}</span>`; }
 function stepper(path, val, opts={}){
-  return `<div class="stepper ${opts.sm?"sm":""}" data-step="${opts.step||"auto"}" data-k="${path}" data-min="${opts.min??0}">
+  return `<div class="stepper ${opts.sm?"sm":""}" data-step="${opts.step||"auto"}" data-k="${path}" data-min="${opts.min??0}" ${opts.max!=null?`data-max="${opts.max}"`:""}>
     <button type="button" data-act="dec" aria-label="ลด">−</button>
     <input type="number" inputmode="decimal" aria-label="${esc(opts.label||path)}" data-k="${path}" data-t="n" value="${esc(val)}">
     <button type="button" data-act="inc" aria-label="เพิ่ม">+</button></div>`;
@@ -612,508 +706,466 @@ function field(path, label, opts={}){
   const v=getPath(S,path), id="f-"+path.replace(/\./g,"-");
   if(opts.type==="select") return `<div class="f ${opts.wide?"wide":""}"><label for="${id}">${label}</label><select id="${id}" data-k="${path}" ${opts.num?'data-t="n"':""} ${opts.rr?'data-rr="1"':""}>${opts.options.map(([a,b])=>`<option value="${esc(a)}" ${String(a)===String(v)?"selected":""}>${esc(b)}</option>`).join("")}</select>${opts.help?`<span class="help">${opts.help}</span>`:""}</div>`;
   if(opts.type==="text"||opts.type==="url") return `<div class="f ${opts.wide?"wide":""}"><label for="${id}">${label}</label><input id="${id}" type="${opts.type}" data-k="${path}" value="${esc(v)}" ${opts.ph?`placeholder="${esc(opts.ph)}"`:""}>${opts.help?`<span class="help">${opts.help}</span>`:""}</div>`;
-  if(opts.type==="check") return `<label class="toggle ${opts.wide?"wide":""}"><input type="checkbox" data-k="${path}" data-t="b" ${opts.rr?'data-rr="1"':""} ${v?"checked":""}> ${label}</label>`;
-  return `<div class="f ${opts.wide?"wide":""}"><label>${label}${opts.unit?` <span style="opacity:.7">(${opts.unit})</span>`:""}</label>${stepper(path,v,{sm:true,step:opts.step,min:opts.min,label})}${opts.help?`<span class="help">${opts.help}</span>`:""}</div>`;
+  if(opts.type==="switch") return `<label class="switch ${opts.wide?"wide":""}"><span class="tx">${label}${opts.help?`<small>${opts.help}</small>`:""}</span><input type="checkbox" data-k="${path}" data-t="b" ${opts.rr?'data-rr="1"':""} ${v?"checked":""}></label>`;
+  return `<div class="f ${opts.wide?"wide":""}"><label>${label}${opts.unit?` <span style="opacity:.7">(${opts.unit})</span>`:""}</label>${stepper(path,v,{sm:true,step:opts.step,min:opts.min,max:opts.max,label})}${opts.help?`<span class="help">${opts.help}</span>`:""}</div>`;
+}
+function dayPicker(path, days, opts={}){
+  const sp = opts.span ? (()=>{ const idx=ORDER.map((d,i)=>days.includes(d)?i:-1).filter(i=>i>=0); return idx.length? ORDER.slice(idx[0], idx[idx.length-1]+1):[]; })() : [];
+  return `<div class="daychips" role="group" aria-label="เลือกวัน">${DAYS.map(([l,d])=>`<button type="button" class="daychip ${!days.includes(d)&&sp.includes(d)?"span":""}" data-act="toggleDay" data-k="${path}" data-d="${d}" aria-pressed="${days.includes(d)}" aria-label="${DAYNAME[d]}">${l}</button>`).join("")}</div>`;
 }
 const out = (k,cls="") => `<span data-o="${k}" class="${cls}"></span>`;
+function modeTabs(){ return `<div class="btns" style="justify-content:space-between"><div class="seg-tabs" role="group" aria-label="นับลูกค้าแบบไหน">${MODES.map(([k,l])=>`<button data-act="setMode" data-v="${k}" aria-pressed="${S.ops.mode===k}">${l}</button>`).join("")}</div><div class="seg-tabs" role="group" aria-label="ขอบเขต"><button data-act="setScope" data-v="chula" aria-pressed="${S.ops.scope!=="all"}">เฉพาะจุฬาฯ</button><button data-act="setScope" data-v="all" aria-pressed="${S.ops.scope==="all"}">รวมนอกจุฬาฯ</button></div></div>`; }
 
-/* sheets (modals) */
-let sheetOnClose=null;
-function openSheet(title, body, foot="", onClose=null){
-  const L=$("#layer");
-  L.innerHTML = `<div class="scrim" data-act="closeSheet"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+/* sheets */
+let sheetOnClose=null, sheetReopen=null;
+function openSheet(title, body, foot="", onClose=null, reopen=null){
+  const L=$("#layer"), had=!!$(".sheet",L);
+  L.innerHTML = `<div class="scrim ${had?"show":""}" data-act="closeSheet"></div><div class="sheet ${had?"show":""}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
     <div class="sheet-head"><h3>${esc(title)}</h3><button class="xbtn" data-act="closeSheet" aria-label="ปิด">×</button></div>
     <div class="sheet-body">${body}</div>${foot?`<div class="sheet-foot">${foot}</div>`:""}</div>`;
-  sheetOnClose=onClose;
-  requestAnimationFrame(()=>{ $(".scrim",L).classList.add("show"); $(".sheet",L).classList.add("show"); const f=$(".sheet input[type=text]",L); if(f && !matchMedia("(max-width:760px)").matches) f.focus(); });
+  sheetOnClose=onClose; sheetReopen=reopen;
+  if(!had) requestAnimationFrame(()=>{ $(".scrim",L).classList.add("show"); $(".sheet",L).classList.add("show"); });
 }
-function closeSheet(){
+function closeSheet(silent){
   const L=$("#layer"), sh=$(".sheet",L), sc=$(".scrim",L);
   if(!sh) return;
   sh.classList.remove("show"); sc.classList.remove("show");
-  setTimeout(()=>{ L.innerHTML=""; if(sheetOnClose){ const f=sheetOnClose; sheetOnClose=null; f(); } },260);
+  const f=sheetOnClose; sheetOnClose=null; sheetReopen=null;
+  setTimeout(()=>{ L.innerHTML=""; if(f && !silent) f(); },260);
 }
+function reopenSheet(){ if(sheetReopen){ const body=$(".sheet-body"); const st=body?body.scrollTop:0; sheetReopen(); const b2=$(".sheet-body"); if(b2) b2.scrollTop=st; } }
 
 /* ================= pages ================= */
 function pSummary(R){
-  const st=R.st, tgt=n(S.ops.targetMonths);
-  const status = R.payback==null ? ["bad","ยังไม่คืนทุนในแผนนี้","var(--bad)"] : R.payback<=tgt ? ["good","คืนทุนเร็วกว่าเป้า "+tgt+" เดือน","#4cc47f"] : ["warn","คืนทุนช้ากว่าเป้า "+tgt+" เดือน","#f0a63a"];
-  const top = R.progs.map(x=>({x,b:st.by[x.p.id]||{rev:0}})).filter(o=>o.b.rev>0).sort((a,b)=>b.b.rev-a.b.rev);
-  const maxRev = top.length? top[0].b.rev : 1;
-  const best = R.progs.filter(x=>x.uses>0 && x.base>0).map(x=>({x,per:x.unitPrice/x.uses})).sort((a,b)=>a.per-b.per)[0];
-  const clinic = clinicAvg();
+  const f=R.full, tgt=n(S.ops.targetMonths), wk=R.weekly;
+  const chula=S.clubs.filter(c=>c.group==="จุฬาฯ");
+  const won=chula.filter(c=>c.status==="won").length, talking=chula.filter(c=>["contact","trial"].includes(c.status)).length;
+  const status = R.payback==null ? ["ยังไม่คืนทุนในแผนนี้","var(--bad)"] : R.payback<=tgt ? ["คืนทุนเร็วกว่าเป้า "+tgt+" เดือน","#4cc47f"] : ["คืนทุนช้ากว่าเป้า "+tgt+" เดือน","#f0a63a"];
+  const rows = Object.entries(f.byClub).filter(([k,v])=>v>0).map(([k,v])=>({name:(S.clubs.find(c=>c.id===k)||{}).name || (pkgById(k.replace("personal-",""))||{}).name || k, v, c:S.clubs.find(c=>c.id===k)})).sort((a,b)=>b.v-a.v);
+  const maxV = rows.length? rows[0].v : 1;
+  const peak = Math.ceil(wk.peak-1e-9);
   return `<section class="view">
-  <div class="page-title"><div><div class="eyebrow">ภาพรวมธุรกิจ · ${todayTH()}</div><h1>สรุปแผน</h1></div>
-    <div class="btns"><button class="btn ghost sm" data-go="pricing">ปรับราคา</button><button class="btn sm" data-go="sheet">${ICON.list} ดูใบราคา</button></div></div>
+  <div class="page-title"><div><span class="phase"><b>เฟส 1</b> สโมสรในจุฬาฯ · ส่งด้วยมอเตอร์ไซค์</span><h1 style="margin-top:10px">สรุปแผน</h1></div>
+    <div class="btns"><button class="btn ghost sm" data-go="packages">ปรับแพ็กเกจ</button><button class="btn sm" data-go="sheet">${ICON.list} ใบราคา</button></div></div>
+  <div class="card flat" style="gap:8px"><span class="hint">นับรายได้จากสโมสรแบบไหน</span>${modeTabs()}
+    <p class="hint">${{won:"นับเฉพาะสโมสรที่ตกลงแล้ว (ตัวเลขต่ำสุดแต่ชัวร์)",weighted:"สโมสรที่ยังคุยอยู่ นับตามโอกาสปิด เช่น โอกาส 50% นับครึ่งหนึ่ง",all:"สมมติว่าปิดได้ทุกสโมสรที่ยังไม่ปฏิเสธ (ตัวเลขสูงสุด)"}[S.ops.mode]}</p></div>
 
   <div class="verdict">
-    <span class="light"><i style="background:${status[2]}"></i>${status[1]}</span>
-    <div class="sentence">ลงทุน <b>${baht(R.invest)}</b> ซื้อ ${fmt(R.count)} เครื่อง ได้กำไรประมาณ <b>${baht(st.net)}</b> ต่อเดือน และ<b>${R.payback==null?"ยังไม่คืนทุน":"คืนทุนในเดือนที่ "+Math.ceil(R.payback)}</b></div>
-    <div style="font-size:14px;opacity:.75">มีลูกค้า / การเช่าประมาณ ${fmt(R.customers)} รายการต่อเดือน · เครื่องถูกใช้ ${pct(Math.min(R.util,9.99))} ของเวลา</div>
+    <span class="light"><i style="background:${status[1]}"></i>${status[0]}</span>
+    <div class="sentence">ซื้อ ${fmt(R.count)} เครื่อง ลงทุน <b>${baht(R.invest)}</b> ได้รายได้ <b>${baht(f.rev)}</b> ต่อเดือน เหลือกำไร <b>${baht(f.net)}</b> และ<b>${R.payback==null?"ยังไม่คืนทุน":"คืนทุนเดือนที่ "+Math.ceil(R.payback)}</b></div>
+    <div style="font-size:14px;opacity:.75">สโมสรในจุฬาฯ ${chula.length} ทีม · ลูกค้าแล้ว ${won} · กำลังคุย ${talking}</div>
   </div>
 
-  <div class="big3">
-    <div class="bigstat"><span class="l">ลงทุนครั้งแรก</span><span class="v num" data-count="${R.invest}">${baht(R.invest)}</span><span class="s">เครื่อง ${baht(R.investMachines)} + เริ่มต้น ${baht(R.setup)}</span></div>
-    <div class="bigstat"><span class="l">รายได้ / เดือน</span><span class="v num" data-count="${st.rev}">${baht(st.rev)}</span><span class="s">หักทุกอย่างแล้วเหลือ ${baht(st.net)}</span></div>
-    <div class="bigstat"><span class="l">เงินสะสมเมื่อครบ ${R.H} เดือน</span><span class="v num" data-count="${R.end}">${baht(R.end)}</span><span class="s">ถ้าขายเครื่องต่อได้อีก ${baht(R.resale)}</span></div>
-  </div>
-
-  <div class="card">
-    <div class="page-title"><h3>ลองปรับดู ถ้า…</h3><button class="btn ghost sm" data-act="resetWhatIf">กลับเป็นปกติ</button></div>
-    <div class="grid2">
-      <div class="slider"><div class="top"><span>ราคาทุกโปรแกรม</span><b>${out("wiP")}</b></div><input type="range" min="50" max="150" step="5" data-k="whatIf.price" data-t="n" value="${n(S.whatIf.price)}" aria-label="ราคาทุกโปรแกรม"></div>
-      <div class="slider"><div class="top"><span>จำนวนลูกค้า</span><b>${out("wiD")}</b></div><input type="range" min="25" max="200" step="5" data-k="whatIf.demand" data-t="n" value="${n(S.whatIf.demand)}" aria-label="จำนวนลูกค้า"></div>
-    </div>
-    <div class="result-row"><span>กำไร / เดือน <b class="num">${out("netM")}</b></span><span>คืนทุน <b class="num">${out("payTxt")}</b></span></div>
+  <div class="ops">
+    <div class="bigstat"><span class="l">เครื่องที่ต้องใช้วันพีค</span><span class="v num" style="color:${peak>R.count?"var(--bad)":"inherit"}">${fmt(peak)} / ${fmt(R.count)}</span><span class="s">${peak>R.count?"เครื่องไม่พอ ดูตารางส่ง":"มีพอ"}</span></div>
+    <div class="bigstat"><span class="l">ขี่ส่ง-รับ / เดือน</span><span class="v num">${fmt(f.trips)} เที่ยว</span><span class="s">${fmt(f.kms)} กม. · ${fmt(f.mins/60,1)} ชม.</span></div>
+    <div class="bigstat"><span class="l">ค่าส่ง+ทำความสะอาด</span><span class="v num">${baht(f.vari)}</span><span class="s">ต่อเดือน รวมของใช้สิ้นเปลือง</span></div>
+    <div class="bigstat"><span class="l">เครื่องไม่ว่าง</span><span class="v num">${pct(Math.min(R.util,9.99))}</span><span class="s">ของเวลาทั้งเดือน</span></div>
   </div>
 
   <div class="grid2">
-    <div class="card"><h3>เงินลงทุนกลับมาเมื่อไหร่</h3><p class="hint">แท่งแดง = ยังขาดทุนสะสม · แท่งเขียว = คืนทุนแล้ว</p><div class="chart"><canvas id="chCum" role="img" aria-label="กราฟเงินสะสมรายเดือน"></canvas></div></div>
-    <div class="card"><h3>เงินมาจากโปรแกรมไหน</h3><p class="hint">รายได้ต่อเดือนเมื่อลูกค้าครบ</p>
-      <div class="hbar">${top.length? top.map(({x,b})=>`<div class="hbar-row"><span class="t">${esc(x.p.name)}</span><span class="v num">${baht(b.rev)}</span><div class="hbar-track"><div class="hbar-fill" style="width:${(b.rev/maxRev*100).toFixed(1)}%;background:var(${GROUPS[x.p.group].color})"></div></div></div>`).join("") : `<p class="hint">ยังไม่มีรายได้ ใส่จำนวนลูกค้าในหน้าตั้งราคา</p>`}</div>
-      <div class="legend">${Object.entries(GROUPS).map(([k,g])=>`<span><i class="dot" style="background:var(${g.color})"></i>${g.label}</span>`).join("")}</div>
-    </div>
-  </div>
-
-  <div class="grid2">
-    <div class="card flat"><h3>เทียบกับไปคลินิก</h3>
-      <p style="margin:0;font-size:15px">คลินิกในกรุงเทพฯ คิดประมาณ <b>${baht(clinic)}</b> ต่อ 30 นาที ${best?`ลูกค้าที่ใช้ <b>${esc(best.x.p.name)}</b> ของเราจ่ายเพียง <b>${baht(best.per)}</b> ต่อครั้ง ถูกกว่า <b>${pct(1-best.per/clinic)}</b>`:""}</p>
-      <button class="btn ghost sm" data-go="market" style="width:max-content">ดูข้อมูลตลาด</button></div>
-    <div class="card flat"><h3>เครื่องพอไหม</h3>
-      <p style="margin:0;font-size:15px">${R.util>1?`ลูกค้าเกินความจุ ควรมี <b>${R.need} เครื่อง</b> (ตอนนี้ ${R.count})`:R.util<.5?`เครื่องยังว่างมาก ใช้แค่ <b>${pct(R.util)}</b> อาจเริ่มที่ <b>${Math.max(1,R.need)} เครื่อง</b> ก่อน`:`พอดี ใช้ <b>${pct(R.util)}</b> ของเวลาที่ปล่อยได้`}</p>
-      <div class="btns"><button class="btn ghost sm" data-act="machines" data-d="-1">− 1 เครื่อง</button><button class="btn ghost sm" data-act="machines" data-d="1">+ 1 เครื่อง</button></div></div>
+    <div class="card"><h3>เงินลงทุนกลับมาเมื่อไหร่</h3><p class="hint">แดง = ยังขาดทุนสะสม · เขียว = คืนทุนแล้ว · รวมเดือนที่แต่ละสโมสรเริ่มใช้</p><div class="chart"><canvas id="chCum" role="img" aria-label="กราฟเงินสะสม"></canvas></div></div>
+    <div class="card"><h3>รายได้จากแต่ละสโมสร</h3><p class="hint">ต่อเดือน ตามวิธีนับที่เลือกด้านบน</p>
+      <div class="hbar">${rows.length? rows.map(r=>{ const p=r.c?pkgById(r.c.packageId):null; return `<div class="hbar-row"><span class="t">${esc(r.name)}</span><span class="v num">${baht(r.v)}</span><div class="hbar-track"><div class="hbar-fill" style="width:${(r.v/maxV*100).toFixed(1)}%;background:var(${p?KINDS[p.kind].color:"--c1"})"></div></div></div>`; }).join("") : `<p class="hint">ยังไม่มีรายได้ ลองเลือก "ถ้าปิดได้ทุกที่" หรือเปลี่ยนสถานะสโมสร</p>`}</div>
+      <div class="legend">${Object.entries(KINDS).slice(0,3).map(([k,g])=>`<span><i class="dot" style="background:var(${g.color})"></i>${g.label}</span>`).join("")}</div></div>
   </div>
 
   <div class="card"><h3>สิ่งที่ควรทำต่อ</h3><ul class="todo">${todos(R)}</ul></div>
   </section>`;
 }
 function todos(R){
-  const st=R.st, list=[], tgt=n(S.ops.targetMonths);
-  const under = S.programs.filter(p=>p.on && n(p.price) < floorFor(p,R).cash);
-  if(under.length) list.push(["bad","!",`${under.map(p=>esc(p.name)).join(", ")} ราคาต่ำกว่าค่าส่งและค่าทำความสะอาด ขาดทุนทุกครั้งที่ขาย`, `<button class="btn sm" data-go="pricing">แก้ราคา</button>`]);
-  if(R.payback==null || R.payback>tgt) list.push(["warn","!",`คืนทุนช้ากว่าเป้า ลองกด "ใช้ราคาแนะนำ" หรือหาลูกค้าสโมสรเพิ่ม`, `<button class="btn sm" data-act="applyAll" data-mode="suggest">ใช้ราคาแนะนำทั้งหมด</button>`]);
-  else list.push(["good","✓",`คืนทุนในเดือนที่ ${Math.ceil(R.payback)} เร็วกว่าเป้า ${tgt} เดือน`, ""]);
-  if(R.util>1) list.push(["bad","!",`ลูกค้าเกินความจุเครื่อง ต้องมี ${R.need} เครื่อง`, `<button class="btn sm" data-act="setMachines" data-v="${R.need}">ตั้งเป็น ${R.need} เครื่อง</button>`]);
-  const pend = S.clubs.filter(c=>c.status==="target").length;
-  if(pend) list.push(["info","→",`มีสโมสรเป้าหมายที่ยังไม่ได้ติดต่อ ${pend} แห่ง เริ่มจากที่ใกล้ที่สุดก่อน`, `<button class="btn ghost sm" data-go="clubs">ดูรายชื่อ</button>`]);
-  list.push(["info","→","ส่งใบราคาให้ลูกค้าหรือสโมสร เป็นรูปหรือ PDF", `<button class="btn ghost sm" data-go="sheet">เปิดใบราคา</button>`]);
+  const list=[], tgt=n(S.ops.targetMonths), peak=Math.ceil(R.weekly.peak-1e-9);
+  S.packages.filter(p=>p.on).forEach(p=>{ const fl=floorFor(p,R); if(n(p.price)<fl.cash) list.push(["bad","!",`${esc(p.name)} ราคาต่ำกว่าค่าส่ง+ทำความสะอาด ขาดทุนทุกครั้ง`,`<button class="btn sm" data-go="packages">แก้ราคา</button>`]); });
+  if(peak>R.count) list.push(["bad","!",`วันพีคต้องใช้ ${peak} เครื่อง แต่มี ${R.count} ลองย้ายวันของบางทีม หรือซื้อเพิ่ม`,`<button class="btn sm" data-go="week">ดูตารางส่ง</button> <button class="btn ghost sm" data-act="setMachines" data-v="${peak}">ตั้งเป็น ${peak} เครื่อง</button>`]);
+  if(R.payback==null || R.payback>tgt) list.push(["warn","!","คืนทุนช้ากว่าเป้า ลองปิดสโมสรเพิ่ม เริ่มจากทีมที่สนใจอยู่แล้ว หรือกดใช้ราคาแนะนำ",`<button class="btn sm" data-act="applyAll" data-mode="suggest">ใช้ราคาแนะนำ</button>`]);
+  else list.push(["good","✓",`คืนทุนในเดือนที่ ${Math.ceil(R.payback)} เร็วกว่าเป้า ${tgt} เดือน`,""]);
+  const trial=S.clubs.filter(c=>c.group==="จุฬาฯ"&&c.status==="trial");
+  if(trial.length) list.push(["info","→",`${trial.map(c=>esc(c.name)).join(", ")} สนใจแล้ว เสนอให้ทดลองใช้ 1 สัปดาห์แล้วปิดการขาย`,`<button class="btn ghost sm" data-go="clubs">ดูสโมสร</button>`]);
+  list.push(["info","→","ส่งใบราคาให้ผู้จัดการทีมเป็นรูปหรือ PDF",`<button class="btn ghost sm" data-go="sheet">เปิดใบราคา</button>`]);
   return list.map(([c,i,t,a])=>`<li><span class="ic ${c}">${i}</span><div>${t}${a?`<div class="act">${a}</div>`:""}</div></li>`).join("");
 }
 
-function pPricing(R){
-  const list = S.programs.map((p,i)=>({p,i})).filter(({p})=>flt.progGroup==="all"||p.group===flt.progGroup);
+function pPackages(R){
   return `<section class="view">
-  <div class="page-title"><div><div class="eyebrow">Pricing Studio</div><h1>ตั้งราคา</h1>
-    <p class="lead">กด + / − เพื่อปรับราคาและจำนวนลูกค้า หรือกดปุ่มให้ระบบตั้งราคาจากตลาดหรือจากต้นทุน แถบสีบอกว่าราคาอยู่ตรงไหน: แดง = ขาดทุน · เขียว = ดี · เหลือง = แพงกว่าตลาด</p></div>
-    <button class="btn" data-act="addProgram">+ เพิ่มโปรแกรม</button></div>
-
+  <div class="page-title"><div><div class="eyebrow">Packages</div><h1>แพ็กเกจ & ราคา</h1>
+    <p class="lead">แต่ละแพ็กเกจคือรูปแบบที่ทีมใช้จริง: ใช้ประจำทุกสัปดาห์, ใช้หลังแข่ง หรือใช้ช่วงทัวร์นาเมนต์ เลือกวัน ปรับราคา แล้วระบบคิดค่าขี่ส่งของ ค่าทำความสะอาด และกำไรให้</p></div>
+    <button class="btn" data-act="addPackage">+ เพิ่มแพ็กเกจ</button></div>
   <div class="card flat">
     <div class="btns">
       <button class="btn sm" data-act="applyAll" data-mode="suggest">ใช้ราคาแนะนำทั้งหมด</button>
-      <button class="btn ghost sm" data-act="applyAll" data-mode="market">ถูกกว่าตลาด ทั้งหมด</button>
       <button class="btn ghost sm" data-act="applyAll" data-mode="cost">ต้นทุน +${fmt(S.market.markup)}% ทั้งหมด</button>
       <button class="btn ghost sm" data-act="pricingRules">ตั้งค่าการคิดราคา</button>
     </div>
-    <p class="hint">ราคาแนะนำ = ถูกกว่าตลาด (เช่า ${fmt(S.market.discount)}% · บริการต่อรอบ ${fmt(S.market.sessionDiscount)}%) แต่ไม่ต่ำกว่าราคาที่ทำให้คืนทุนใน ${fmt(S.ops.targetMonths)} เดือน แล้วปัดเป็นตัวเลขสวย ๆ เช่น 490, 1,190</p>
+    <p class="hint">"คุ้มทุน" = ราคาที่ครอบคลุมค่าขี่ส่ง ค่าทำความสะอาด และคืนค่าเครื่องใน ${fmt(S.ops.targetMonths)} เดือน · "ตลาด" = ค่าเช่าต่างประเทศปรับเป็นราคาไทย</p>
   </div>
-
-  <div class="scroll-x" role="group" aria-label="กรองประเภท">
-    <button class="chip" data-flt="progGroup" data-v="all" aria-pressed="${flt.progGroup==="all"}">ทั้งหมด ${S.programs.length}</button>
-    ${Object.entries(GROUPS).map(([k,g])=>`<button class="chip" data-flt="progGroup" data-v="${k}" aria-pressed="${flt.progGroup===k}">${g.label} ${S.programs.filter(p=>p.group===k).length}</button>`).join("")}
-  </div>
-
-  <div class="grid2">${list.length? list.map(({p,i})=>progCard(p,i,R)).join("") : `<div class="empty">ยังไม่มีโปรแกรมประเภทนี้<button class="btn sm" data-act="addProgram">+ เพิ่มโปรแกรม</button></div>`}</div>
-
-  <div class="card"><h3>ลูกค้าจ่ายต่อ 1 ครั้งที่ใช้</h3><p class="hint">เทียบคลินิก ${baht(clinicAvg())} / 30 นาที (แท่งเทา)</p><div class="chart tall"><canvas id="chPerUse" role="img" aria-label="กราฟราคาต่อครั้ง"></canvas></div></div>
-
-  <div class="card"><h3>กติกาของทุกโปรแกรม</h3>
-    <div class="fields">
-      ${field("policy.deposit","เงินมัดจำ",{unit:"บาท",step:1000})}
-      ${field("policy.rtoCreditPct","ซื้อเครื่องต่อ: นำค่าเช่ามาลด",{unit:"%",step:10})}
-      ${field("policy.lateFee","ค่าปรับคืนช้า",{unit:"บาท/วัน",step:50})}
-      ${field("policy.pauseDays","สมาชิกพักได้ปีละ",{unit:"วัน",step:7})}
-    </div></div>
+  <div class="grid2">${S.packages.map((p,i)=>pkgCard(p,i,R)).join("")}</div>
+  <div class="card"><h3>เงื่อนไขกลาง</h3><div class="fields">
+    ${field("policy.deposit","มัดจำต่อเครื่อง",{unit:"บาท",step:1000})}
+    ${field("policy.lateFee","ค่าปรับคืนช้า",{unit:"บาท/วัน",step:50})}
+    ${field("policy.cancelHours","ยกเลิกหรือเลื่อนก่อน",{unit:"ชม.",step:12})}
+    ${field("policy.rtoCreditPct","ซื้อเครื่องต่อ: นำค่าเช่ามาลด",{unit:"%",step:10})}
+  </div></div>
   </section>`;
 }
-function progCard(p,i,R){
-  const sg = suggestFor(p,R), price=n(p.price);
-  const max = Math.max(sg.mk.price*1.25, sg.fl.target*1.6, price*1.15, 1);
-  const pos = v => Math.max(0,Math.min(100, v/max*100)).toFixed(1)+"%";
-  let st = price < sg.fl.cash ? ["bad","ขาดทุนต่อครั้ง"] : price < sg.fl.target ? ["warn","คืนทุนช้ากว่าเป้า"] : price > sg.mk.price ? ["warn","แพงกว่าตลาด"] : ["good","ราคาดี"];
-  const b = R.st.by[p.id]||{rev:0,profit:0};
-  const perUse = usesOf(p)>0 ? price/usesOf(p) : null, clinic=clinicAvg();
+function pkgCard(p,i,R){
+  const sg=suggestFor(p,R), price=n(p.price), b=bookingOf(p,{});
+  const users=S.clubs.filter(c=>c.packageId===p.id && c.status!=="lost");
+  const max=Math.max(sg.mk.price*1.3, sg.fl.target*1.6, price*1.15, 1), pos=v=>Math.max(0,Math.min(100,v/max*100)).toFixed(1)+"%";
+  const st = price<sg.fl.cash?["bad","ขาดทุนต่อครั้ง"]:price<sg.fl.target?["warn","คืนทุนช้ากว่าเป้า"]:(sg.mk.price>0&&price>sg.mk.price)?["warn","แพงกว่าตลาด"]:["good","ราคาดี"];
+  const unit=KINDS[p.kind].unit, pre=`packages.${i}`;
+  let sched="";
+  if(p.kind==="weekly"){
+    sched = `<div><span class="field-lab">ทีมใช้วันไหนบ้าง (ค่าเริ่มต้น แต่ละสโมสรเปลี่ยนเองได้)</span>${dayPicker(pre+".days",p.days||[],{span:p.leave})}</div>
+      ${field(pre+".leave","ฝากเครื่องไว้ที่สโมสรทั้งสัปดาห์",{type:"switch",rr:true,help:p.leave?`ขี่ไปส่งต้นสัปดาห์ รับคืนวันสุดท้าย (2 เที่ยว/สัปดาห์) แต่เครื่องไม่ว่างให้ทีมอื่นตั้งแต่ ${DAYNAME[ORDER.find(d=>(p.days||[]).includes(d))]||"-"} ถึงวันสุดท้าย`:`ส่งและรับคืนทุกวันที่ใช้ (${(p.days||[]).length*2} เที่ยว/สัปดาห์) เครื่องว่างให้ทีมอื่นในวันที่เหลือ`})}`;
+  } else if(p.kind==="personal"){
+    sched = `<div class="fields">${field(pre+".useDays","เช่ากี่วันต่อครั้ง",{unit:"วัน",step:1,min:1})}${field(pre+".qty","ครั้งต่อเดือน",{unit:"ครั้ง",step:1})}</div>`;
+  } else {
+    sched = `<div class="fields">${field(pre+".useDays", p.kind==="match"?"ใช้กี่วันต่อนัด":"ใช้กี่วันต่อรายการ",{unit:"วัน",step:1,min:1,help:p.kind==="match"?"1 = ใช้วันแข่ง รับคืนวันรุ่งขึ้น":"ฝากเครื่องไว้ตลอดรายการ"})}</div>`;
+  }
   return `<article class="prog ${p.on?"":"off"}" data-pid="${p.id}">
-    <div class="prog-head"><div style="min-width:0"><div class="btns" style="gap:6px;margin-bottom:6px">${groupTag(p.group)}<span class="tag ${st[0]}">${st[1]}</span></div>
+    <div class="prog-head"><div style="min-width:0"><div class="btns" style="gap:6px;margin-bottom:6px">${kindTag(p.kind)}<span class="tag ${st[0]}">${st[1]}</span>${p.on?"":`<span class="tag">ปิดขาย</span>`}</div>
       <div class="prog-name">${esc(p.name)}</div><div class="prog-desc">${esc(p.desc||"")}</div></div>
-      <button class="xbtn" data-act="editProgram" data-i="${i}" aria-label="แก้ไขรายละเอียด ${esc(p.name)}" title="แก้ไขรายละเอียด">${ICON.more}</button></div>
+      <button class="xbtn" data-act="editPackage" data-i="${i}" aria-label="แก้ชื่อและรายละเอียด ${esc(p.name)}">${ICON.more}</button></div>
     <div class="prog-controls">
-      <div><span class="field-lab">ราคา (บาท / ${esc(p.per)})</span>${stepper(`programs.${i}.price`, price, {label:"ราคา "+p.name})}</div>
-      <div><span class="field-lab">${p.per==="เดือน"?"สมาชิก (คน)":"ครั้ง / เดือน"}${clubSeats(p.id)?` +${fmt(clubSeats(p.id))} สโมสร`:""}</span>${stepper(`programs.${i}.qty`, n(p.qty), {step:1,label:"จำนวน "+p.name})}</div>
+      <div><span class="field-lab">ราคาต่อเครื่อง (บาท / ${unit})</span>${stepper(pre+".price",price,{label:"ราคา"})}</div>
+      <div><span class="field-lab">เครื่องที่ส่งต่อครั้ง</span>${stepper(pre+".units",n(p.units)||1,{step:1,min:1,label:"จำนวนเครื่อง"})}</div>
     </div>
+    ${sched}
+    <div class="explain">${p.kind==="weekly"?"ต่อเดือน":`ต่อ${unit}`}: ทีมได้ใช้ <b>${fmt(b.useDays/(p.kind==="weekly"?1:Math.max(.0001,b.occ)),1)} วัน</b> · ขี่ส่ง-รับ <b>${fmt(b.trips/(p.kind==="weekly"?1:Math.max(.0001,b.occ)),1)} เที่ยว</b> · ค่าส่ง+ทำความสะอาด <b>${baht(b.variable/(p.kind==="weekly"?1:Math.max(.0001,b.occ)))}</b>${b.perAthlete!=null?` · นักกีฬา ${fmt(b.athletes)} คน ตกคนละ <b>${baht(b.perAthlete)}</b>/ครั้ง (คลินิก ${baht(clinicAvg())})`:""}</div>
     <div>
-      <div class="meter" style="--floor:${pos(sg.fl.target)};--mkt:${pos(sg.mk.price)}" aria-hidden="true">
-        <div class="rail"></div>
-        <div class="mk" style="left:${pos(sg.fl.target)}"><span>คุ้มทุน</span></div>
-        <div class="mk" style="left:${pos(sg.mk.price)}"><span>ตลาด</span></div>
-        <div class="me" style="left:${pos(price)}"></div>
-      </div>
-      <div class="facts-row"><span>คุ้มทุน <b>${baht(sg.fl.target)}</b></span><span>ตลาด <b>${baht(sg.mk.price)}</b></span>${perUse!=null?`<span>ตกครั้งละ <b>${baht(perUse)}</b>${perUse<clinic?` · ถูกกว่าคลินิก ${pct(1-perUse/clinic)}`:""}</span>`:""}</div>
+      <div class="meter" style="--floor:${pos(sg.fl.target)};--mkt:${pos(sg.mk.price)}" aria-hidden="true"><div class="rail"></div>
+        <div class="mk" style="left:${pos(sg.fl.target)}"><span>คุ้มทุน</span></div><div class="mk" style="left:${pos(sg.mk.price)}"><span>ตลาด</span></div><div class="me" style="left:${pos(price)}"></div></div>
+      <div class="facts-row"><span>คุ้มทุน <b>${baht(sg.fl.target)}</b></span><span>ตลาด <b>${baht(sg.mk.price)}</b></span><span>ใช้อยู่ <b>${users.length} สโมสร</b></span></div>
     </div>
     <div class="chips">
       <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${sg.value}">แนะนำ ${baht(sg.value)}</button>
       <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${nicePrice(sg.mk.price)}">ตามตลาด ${baht(nicePrice(sg.mk.price))}</button>
-      <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${sg.byMarket}">ตลาด −${fmt(sg.disc)}% ${baht(sg.byMarket)}</button>
+      <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${sg.byCost}">ต้นทุน +${fmt(S.market.markup)}% ${baht(sg.byCost)}</button>
       <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${nicePrice(sg.fl.target)}">ต่ำสุดคุ้มทุน ${baht(nicePrice(sg.fl.target))}</button>
-      <button class="chip soft" data-act="showBasis" data-i="${i}">ที่มาราคาตลาด</button>
+      <button class="chip soft" data-act="showBasis" data-i="${i}">ที่มาของราคา</button>
     </div>
-    <div class="result-row"><span>รายได้ / เดือน <b class="num">${p.on?baht(b.rev):"ปิดขาย"}</b></span><span>กำไร / เดือน <b class="num" style="color:${b.profit<0?"var(--bad)":"inherit"}">${p.on?baht(b.profit):"-"}</b></span></div>
   </article>`;
 }
 
+function pClubs(R){
+  const groups=[...new Set(S.clubs.map(c=>c.group||"อื่น ๆ"))];
+  const list=S.clubs.map((c,i)=>({c,i})).filter(({c})=>(flt.clubGroup==="all"||c.group===flt.clubGroup)&&(flt.clubStatus==="all"||c.status===flt.clubStatus));
+  const inG=S.clubs.filter(c=>flt.clubGroup==="all"||c.group===flt.clubGroup), total=inG.length||1;
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Clubs</div><h1>สโมสร / ชมรม</h1>
+    <p class="lead">แตะชื่อเพื่อตั้งค่าว่าทีมใช้แพ็กเกจไหน วันไหน กี่เครื่อง และอยู่ไกลแค่ไหน กดปุ่มสถานะเพื่อเลื่อนขั้นการขาย</p></div>
+    <button class="btn" data-act="addClub">+ เพิ่มสโมสร</button></div>
+  <div class="scroll-x" role="group" aria-label="กลุ่ม">${["จุฬาฯ",...groups.filter(g=>g!=="จุฬาฯ"),"all"].map(g=>`<button class="chip" data-flt="clubGroup" data-v="${esc(g)}" aria-pressed="${flt.clubGroup===g}">${g==="all"?"ทั้งหมด":esc(g)} ${g==="all"?S.clubs.length:S.clubs.filter(c=>c.group===g).length}</button>`).join("")}</div>
+  <div class="card"><h3>สถานะการขาย</h3>
+    <div class="seg">${STATUS.map(s=>`<span style="width:${(inG.filter(c=>c.status===s.k).length/total*100).toFixed(1)}%;background:var(${s.color})"></span>`).join("")}</div>
+    <div class="legend">${STATUS.map(s=>`<button class="chip ${flt.clubStatus===s.k?"":"soft"}" data-flt="clubStatus" data-v="${flt.clubStatus===s.k?"all":s.k}" aria-pressed="${flt.clubStatus===s.k}"><i class="dot" style="background:var(${s.color})"></i> ${s.label} ${inG.filter(c=>c.status===s.k).length}</button>`).join("")}</div></div>
+  ${list.length?`<div class="rows">${list.map(({c,i})=>{
+    const s=STATUS.find(x=>x.k===c.status)||STATUS[0], p=pkgById(c.packageId), b=p?bookingOf(p,c):null;
+    const sched = !p?"":p.kind==="weekly"?daysTxt(c.days)+(c.addMatch&&matchPkg()?` + หลังแข่ง ${fmt(c.matches)} นัด`:""):p.kind==="match"?`${fmt(c.matches)} นัด/เดือน · ${DAYSHORT[n(c.matchDay)]}`:p.kind==="event"?`${fmt(c.events,1)} รายการ/เดือน`:"";
+    return `<div class="row" data-act="editClub" data-i="${i}" role="button" tabindex="0">
+      <div><div class="t">${esc(c.name)}</div><div class="s">${p?esc(p.name)+" · ":""}${sched} · ${fmt(c.units)} เครื่อง · ${fmt(c.km)} กม.${n(c.start)>1?` · เริ่มเดือนที่ ${fmt(c.start)}`:""}</div></div>
+      <div style="display:grid;gap:4px;justify-items:end"><button class="tag" style="border:0;cursor:pointer;background:color-mix(in srgb, var(${s.color}) 20%, transparent)" data-act="nextStatus" data-i="${i}" title="กดเพื่อเลื่อนสถานะ">${s.label} ›</button>
+      <span class="rs">${b?baht(b.revenue+(c.addMatch&&p.kind==="weekly"&&matchPkg()?bookingOf(matchPkg(),c).revenue:0))+" / เดือน":""}</span></div></div>`;}).join("")}</div>`
+  : `<div class="empty">ไม่มีสโมสรในตัวกรองนี้<button class="btn sm" data-act="addClub">+ เพิ่มสโมสร</button></div>`}
+  </section>`;
+}
+
+function pWeek(R){
+  const wk=R.weekly, cnt=R.count, D=S.delivery;
+  const tripsWeek = ORDER.reduce((a,d)=>a+wk.trips[d].reduce((x,t)=>x+(t.maybe!=null?t.maybe:1)*t.w*Math.ceil(t.units/Math.max(1,n(D.unitsPerTrip))),0),0);
+  const kmWeek = ORDER.reduce((a,d)=>a+wk.trips[d].reduce((x,t)=>x+(t.maybe!=null?t.maybe:1)*t.w*Math.ceil(t.units/Math.max(1,n(D.unitsPerTrip)))*n(t.c.km)*2,0),0);
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Weekly Delivery Plan</div><h1>ตารางส่งเครื่อง</h1>
+    <p class="lead">หนึ่งสัปดาห์ต้องขี่ไปส่งและรับเครื่องที่ไหนบ้าง และแต่ละวันใช้เครื่องกี่ตัว ช่องดำ = เครื่องที่ถูกใช้ · แดง = เกินจำนวนที่มี · เทา = อาจมีแข่ง</p></div></div>
+  <div class="card flat" style="gap:8px">${modeTabs()}</div>
+  <div class="ops">
+    <div class="bigstat"><span class="l">เครื่องที่มี</span><span class="v num">${fmt(cnt)}</span><span class="s"><button class="chip soft" data-act="machines" data-d="-1">−1</button> <button class="chip soft" data-act="machines" data-d="1">+1</button></span></div>
+    <div class="bigstat"><span class="l">วันพีคต้องใช้</span><span class="v num" style="color:${wk.peak>cnt+1e-9?"var(--bad)":"inherit"}">${fmt(wk.peak,1)}</span><span class="s">${ORDER.filter(d=>Math.abs(wk.need[d]-wk.peak)<1e-9&&wk.peak>0).map(d=>DAYNAME[d]).join(", ")||"-"}</span></div>
+    <div class="bigstat"><span class="l">ขี่ต่อสัปดาห์</span><span class="v num">${fmt(tripsWeek,1)} เที่ยว</span><span class="s">${fmt(kmWeek,0)} กม. · ${fmt(tripsWeek*n(D.tripMin)/60,1)} ชม.</span></div>
+    <div class="bigstat"><span class="l">ค่าน้ำมัน+สึกหรอ</span><span class="v num">${baht(kmWeek*n(D.kmCost))}</span><span class="s">ต่อสัปดาห์ ที่ ${baht(D.kmCost)}/กม.</span></div>
+  </div>
+  <div class="week">${ORDER.map(d=>{
+    const need=wk.need[d], used=Math.ceil(need-1e-9), sure=Math.ceil(wk.sure[d]-1e-9);
+    const slots=[]; for(let k=0;k<Math.max(cnt,used);k++) slots.push(k<Math.min(sure,cnt)?"on":k<cnt?(k<used?"maybe":""):"over");
+    return `<div class="wday"><div class="h">${DAYNAME[d]}<small>${fmt(need,1)}/${cnt} เครื่อง</small></div>
+      <div class="list" style="display:grid;gap:6px"><div class="slots">${slots.map(s=>`<i class="slot ${s}"></i>`).join("")}</div>
+      ${wk.trips[d].length? wk.trips[d].map(t=>`<div class="trip ${t.dir}"><b>${t.dir==="out"?"▸ ส่ง":"◂ รับคืน"} ${fmt(t.units)} เครื่อง${t.maybe!=null?" (ถ้ามีแข่ง)":""}</b>${esc(t.c.name)} · ${fmt(t.c.km)} กม.${t.w<1?` · โอกาส ${pct(t.w)}`:""}</div>`).join("") : `<span class="hint" style="font-size:12px">ว่าง</span>`}</div></div>`; }).join("")}</div>
+  <p class="hint">ทัวร์นาเมนต์ไม่อยู่ในตารางรายสัปดาห์ เพราะไม่ได้เกิดทุกสัปดาห์ ควรกันเครื่องไว้ล่วงหน้าเมื่อรู้วันแข่ง</p>
+  </section>`;
+}
+
+function marketSummary(){
+  const rents=S.refs.filter(r=>r.kind==="rent"&&r.bench!==false&&n(r.price)>0&&refDays(r));
+  const by=(lo,hi)=>rents.filter(r=>refDays(r)>=lo&&refDays(r)<=hi).map(refPerDay);
+  const ses=S.refs.filter(r=>r.kind==="session"&&n(r.price)>0);
+  const ret=S.refs.filter(r=>r.kind==="retail"&&n(r.price)>0&&r.country==="ไทย").map(refTHB);
+  return [["คลินิกในไทย","ต่อ 30 นาที",avg(ses.filter(r=>r.inAvg).map(refPer30)),ses.filter(r=>r.inAvg).length],
+    ["บริการต่างประเทศ","ต่อ 30 นาที",median(ses.filter(r=>r.country!=="ไทย").map(refPer30)),ses.filter(r=>r.country!=="ไทย").length],
+    ["เช่า 1–2 วัน","ต่อวัน",median(by(1,2)),by(1,2).length],["เช่าราวสัปดาห์","ต่อวัน",median(by(6,20)),by(6,20).length],
+    ["เช่ารายเดือน","ต่อเดือน",median(by(21,999))*30,by(21,999).length],["ซื้อเครื่องในไทย","ต่อเครื่อง",median(ret),ret.length]];
+}
+function pMarket(){
+  const list=S.refs.map((r,i)=>({r,i})).filter(({r})=>(flt.refScope==="all"||(flt.refScope==="th"?r.country==="ไทย":r.country!=="ไทย"))&&(flt.refKind==="all"||r.kind===flt.refKind));
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Market Research</div><h1>ข้อมูลตลาด</h1><p class="lead">ราคาไทยและต่างประเทศ แปลงเป็นบาทแล้ว ใช้เป็นราคาเทียบในหน้าแพ็กเกจ</p></div>
+    <button class="btn" data-act="addRef">+ เพิ่มแหล่งอ้างอิง</button></div>
+  <div class="grid3">${marketSummary().map(([t,u,v,c])=>`<div class="bigstat"><span class="l">${t}</span><span class="v num">${v?baht(v):"-"}</span><span class="s">${u} · จาก ${c} แหล่ง</span></div>`).join("")}</div>
+  <div class="card flat"><div class="btns" style="justify-content:space-between"><span style="font-size:14px">ในไทยยังไม่มีเจ้าที่ประกาศราคาเช่า จึงใช้ราคาต่างประเทศ × <b>${fmt(S.market.localFactor)}%</b></span>
+    <span class="btns">${[50,60,70,80,100].map(v=>`<button class="chip" data-act="setLocal" data-v="${v}" aria-pressed="${n(S.market.localFactor)===v}">${v}%</button>`).join("")}</span></div></div>
+  <div class="grid2">
+    <div class="card"><h3>เช่ายิ่งนาน ยิ่งถูกต่อวัน</h3><p class="hint">เทา = คู่แข่ง · ดำ = แพ็กเกจของเรา (ต่อเครื่องต่อวันที่เครื่องไม่อยู่)</p><div class="chart tall"><canvas id="chCurve" role="img" aria-label="กราฟราคาเช่าต่อวัน"></canvas></div></div>
+    <div class="card"><h3>บริการต่อ 30 นาที</h3><p class="hint">น้ำเงิน = ไทย · เทา = ต่างประเทศ · ดำ = ของเรา (ต่อนักกีฬาต่อครั้ง)</p><div class="chart tall"><canvas id="chSes" role="img" aria-label="กราฟราคาบริการ"></canvas></div></div>
+  </div>
+  <div class="scroll-x">${[["all","ทั้งหมด"],["th","ไทย"],["ab","ต่างประเทศ"]].map(([k,l])=>`<button class="chip" data-flt="refScope" data-v="${k}" aria-pressed="${flt.refScope===k}">${l}</button>`).join("")}<span style="flex:none;width:8px"></span>
+    <button class="chip" data-flt="refKind" data-v="all" aria-pressed="${flt.refKind==="all"}">ทุกประเภท</button>${Object.entries(REF_KINDS).map(([k,l])=>`<button class="chip" data-flt="refKind" data-v="${k}" aria-pressed="${flt.refKind===k}">${l}</button>`).join("")}</div>
+  ${list.length?`<div class="rows">${list.map(({r,i})=>{
+    const norm=r.kind==="rent"&&refPerDay(r)?baht(refPerDay(r)):r.kind==="session"&&refPer30(r)?baht(refPer30(r)):n(r.price)?baht(refTHB(r)):"-";
+    const unit=r.kind==="rent"?"ต่อวัน":r.kind==="session"?"ต่อ 30 นาที":r.kind==="retail"?"ต่อเครื่อง":"";
+    return `<div class="row" data-act="editRef" data-i="${i}" role="button" tabindex="0"><div><div class="t">${esc(r.name)}</div>
+      <div class="s">${esc(r.item||"")} · ${esc(r.country||"")}${n(r.price)?` · ${fmt(r.price,2)} ${esc(r.currency)}${r.unit!=="item"?` / ${fmt(r.qty)} ${UNITS[r.unit]||""}`:""}`:""}${r.kind==="rent"&&r.bench===false?" · ไม่ใช้เทียบ":""}</div>
+      ${r.note?`<div class="s">${esc(r.note)}</div>`:""}${r.url?`<a class="s" href="${esc(r.url)}" target="_blank" rel="noopener" data-stop="1">เปิดแหล่งที่มา ↗</a>`:""}</div>
+      <div><div class="r num">${norm}</div><div class="rs">${unit} · ${REF_KINDS[r.kind]||""}</div></div></div>`;}).join("")}</div>` : `<div class="empty">ไม่มีข้อมูลตามตัวกรองนี้</div>`}
+  </section>`;
+}
+
+function pCosts(R){
+  const f=R.full, rev=Math.max(1,f.rev), D=S.delivery;
+  const flow=[["ค่าขี่ส่ง + ทำความสะอาด + ของใช้",f.vari,"--c5"],["กันเงินซ่อม + ค่าธรรมเนียม",f.loss,"--c2"],["ค่าใช้จ่ายคงที่",f.fixed,"--c3"],["ภาษี",f.tax,"--c5"],["เหลือเป็นกำไร",f.net,"--good"]];
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Costs</div><h1>ต้นทุน</h1></div></div>
+  <div class="card"><h3>เครื่อง</h3><div class="fields">
+    ${field("machine.count","จำนวนเครื่อง",{unit:"เครื่อง",step:1,min:1})}
+    ${field("machine.price","ราคาซื้อต่อเครื่อง",{unit:"บาท",step:500})}
+    ${field("machine.accessories","อุปกรณ์เสริมต่อเครื่อง",{unit:"บาท",step:500,help:"ปลอกขาสำรอง น้ำยา liner"})}
+    ${field("ops.targetMonths","เป้าคืนทุน",{unit:"เดือน",step:1})}
+  </div>
+  <div class="btns"><span class="hint">ราคาด่วน:</span>${[[34000,"นำเข้า 34,000"],[34199,"Play Strong 34,199"],[39999,"ตัวแทน 39,999"],[45999,"ราคาเต็ม 45,999"]].map(([v,l])=>`<button class="chip" data-act="setMachinePrice" data-v="${v}" aria-pressed="${n(S.machine.price)===v}">${l}</button>`).join("")}</div></div>
+
+  <div class="card"><h3>${ICON.bike.replace('<svg','<svg style="width:18px;height:18px;vertical-align:-3px"')} ขี่มอเตอร์ไซค์ส่งเครื่อง</h3>
+    ${field("delivery.base","จุดเริ่มต้น (ที่เก็บเครื่อง)",{type:"text",wide:true})}
+    <div class="fields">
+      ${field("delivery.kmCost","ค่าน้ำมัน + สึกหรอ ต่อกม.",{unit:"บาท",step:.1,help:"G95 ≈ ฿41/ลิตร ÷ ~40 กม./ลิตร ≈ ฿1 + สึกหรอ"})}
+      ${field("delivery.tripMin","เวลาต่อเที่ยว (ไป-กลับ + ยกของ)",{unit:"นาที",step:5})}
+      ${field("delivery.hourValue","คิดค่าเวลาตัวเอง",{unit:"บาท/ชม.",step:50,help:"0 = ไม่คิด (ขี่เอง)"})}
+      ${field("delivery.unitsPerTrip","ขนได้ต่อเที่ยว",{unit:"เครื่อง",step:1,min:1})}
+      ${field("delivery.cleaning","ทำความสะอาดเมื่อรับคืน",{unit:"บาท/เครื่อง",step:10})}
+      ${field("delivery.consumable","ของใช้สิ้นเปลือง",{unit:"บาท/เครื่อง/วันใช้",step:5,help:"liner ผ้าเช็ด น้ำยา"})}
+    </div>
+    <p class="explain">ต้นทุนต่อเที่ยว = ระยะไป-กลับ × ค่าต่อกม. + เวลา × ค่าเวลา · ตัวอย่างสโมสรห่าง 2 กม. = <b>${baht(4*n(D.kmCost)+n(D.tripMin)/60*n(D.hourValue))}</b> ต่อเที่ยว</p>
+  </div>
+
+  <div class="big3">
+    <div class="bigstat"><span class="l">ลงทุนครั้งแรก</span><span class="v num">${baht(R.invest)}</span><span class="s">เครื่อง ${baht(R.investMachines)} + เริ่มต้น ${baht(R.setup)}</span></div>
+    <div class="bigstat"><span class="l">ค่าใช้จ่ายคงที่ / เดือน</span><span class="v num">${baht(R.fixed)}</span><span class="s">รวมเงินเก็บเปลี่ยนปลอกขา ${baht(R.sleeveM)}</span></div>
+    <div class="bigstat"><span class="l">ค่าขี่ส่ง / เดือน</span><span class="v num">${baht(f.vari)}</span><span class="s">${fmt(f.trips)} เที่ยว · ${fmt(f.kms)} กม.</span></div>
+  </div>
+  <div class="card"><h3>รายได้ 100 บาท ไปไหนบ้าง</h3><div class="hbar">${flow.map(([t,v,c])=>`<div class="hbar-row"><span class="t">${t}</span><span class="v num">${fmt(v/rev*100,1)} บาท</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(0,Math.min(100,v/rev*100)).toFixed(1)}%;background:var(${t==="เหลือเป็นกำไร"&&v<0?"--bad":c})"></div></div></div>`).join("")}</div></div>
+  <div class="grid2">
+    <div class="card"><div class="page-title"><h3>จ่ายครั้งเดียวตอนเริ่ม</h3><button class="btn ghost sm" data-act="addRow" data-list="setup">+ เพิ่ม</button></div>${listRows("setup")}</div>
+    <div class="card"><div class="page-title"><h3>จ่ายทุกเดือน</h3><button class="btn ghost sm" data-act="addRow" data-list="monthly">+ เพิ่ม</button></div>${listRows("monthly")}</div>
+  </div>
+  <details class="card"><summary><h3 style="display:inline">ตั้งค่าเพิ่มเติม</h3></summary><div class="fields" style="margin-top:14px">
+    ${field("ops.damagePct","กันเงินซ่อม",{unit:"% ของรายได้",step:1,help:"ประกันมักไม่คุ้มครองการใช้เชิงพาณิชย์"})}
+    ${field("ops.payFeePct","ค่าธรรมเนียมรับเงิน",{unit:"%",step:.5})}
+    ${field("ops.taxPct","ภาษีจากกำไร",{unit:"%",step:1})}
+    ${field("machine.sleeveCost","ค่าเปลี่ยนปลอกขา",{unit:"บาท",step:500})}
+    ${field("machine.sleeveEvery","เปลี่ยนปลอกขาทุก",{unit:"เดือน",step:1})}
+    ${field("machine.lifeMonths","อายุเครื่อง",{unit:"เดือน",step:6})}
+    ${field("machine.resalePct","ขายต่อได้",{unit:"% ของราคา",step:5})}
+    ${field("ops.horizon","ดูแผนล่วงหน้า",{unit:"เดือน",step:6})}
+    ${field("delivery.personalKm","ระยะส่งลูกค้าบุคคล (เฉลี่ย)",{unit:"กม.",step:1})}
+  </div></details>
+  <div class="card"><div class="page-title"><h3>ตารางรายเดือน</h3><button class="btn ghost sm" data-act="exp" data-f="planxlsx">${ICON.dl} Excel</button></div><div class="tbl-wrap" data-o="monthTable"></div></div>
+  </section>`;
+}
+function listRows(list){
+  return S[list].length ? `<div style="display:grid;gap:10px">${S[list].map((x,i)=>`<div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 36px;gap:8px;align-items:center">
+    <input type="text" aria-label="ชื่อรายการ" data-k="${list}.${i}.name" value="${esc(x.name)}">${stepper(`${list}.${i}.amount`,n(x.amount),{sm:true,step:500,label:"จำนวนเงิน"})}
+    <button class="xbtn" data-act="del" data-list="${list}" data-i="${i}" aria-label="ลบรายการ">×</button></div>`).join("")}</div>` : `<p class="hint">ยังไม่มีรายการ</p>`;
+}
+
+/* ---- price list ---- */
 function plData(){
   const clinic=clinicAvg(), hid=S.sheet.hidden||[];
-  return Object.keys(GROUPS).map(g=>({g, items:S.programs.filter(p=>p.on && p.group===g && !hid.includes(p.id)).map(p=>{
-    const pm=n(S.whatIf.price)/100, price=Math.round(n(p.price)*pm);
-    const per = usesOf(p)>0 ? price/usesOf(p) : null;
-    return {p, price, per, save: per!=null && per<clinic ? 1-per/clinic : null};
+  return Object.keys(KINDS).map(k=>({k, items:S.packages.filter(p=>p.on&&p.kind===k&&!hid.includes(p.id)).map(p=>{
+    const b=bookingOf(p,{}), price=Math.round(n(p.price)*n(S.whatIf.price)/100);
+    const per=b.perAthlete; return {p,b,price,per,save:per!=null&&per<clinic?1-per/clinic:null};
   })})).filter(x=>x.items.length);
+}
+function schedText(p){
+  if(p.kind==="weekly") return `${daysTxt(p.days)} · ${(p.days||[]).length} วัน/สัปดาห์${p.leave?" · ฝากเครื่องไว้ที่ทีม":" · ส่ง-รับทุกวัน"}`;
+  if(p.kind==="match") return `ใช้ ${fmt(p.useDays)} วันต่อนัด`;
+  if(p.kind==="event") return `ใช้ได้ ${fmt(p.useDays)} วันต่อรายการ`;
+  return `เช่า ${fmt(p.useDays)} วัน`;
 }
 function priceListHTML(){
   const sh=S.sheet, pol=S.policy, clinic=clinicAvg(), data=plData();
   return `<div id="pl" class="pl ${sh.layout==="story"?"story":""} ${sh.dark?"dark":""}">
-    <div class="pl-head">
-      <div class="pl-brand"><span class="brand-mark"><i></i><i></i><i></i></span>Normatec Recovery</div>
-      <div class="pl-title">${esc(sh.title)}</div>
-      <div class="pl-sub">${esc(sh.sub)}</div>
-      <div class="pl-date">ราคา ณ วันที่ ${todayTH()}</div>
-    </div>
-    <div class="pl-body">${data.map(({g,items})=>`<div class="pl-group"><h4>${GROUPS[g].label}<span>${GROUPS[g].desc}</span></h4>
+    <div class="pl-head"><div class="pl-brand"><span class="brand-mark"><i></i><i></i><i></i></span>Normatec Recovery</div>
+      <div class="pl-title">${esc(sh.title)}</div><div class="pl-sub">${esc(sh.sub)}</div><div class="pl-date">ราคา ณ วันที่ ${todayTH()}</div></div>
+    <div class="pl-body">${data.map(({k,items})=>`<div class="pl-group"><h4>${KINDS[k].label}<span>${KINDS[k].desc}</span></h4>
       ${items.map(it=>`<div class="pl-item"><div class="n">${esc(it.p.name)}</div>
-        <div class="p">฿${fmt(it.price)}<small>ต่อ${esc(it.p.per)}${n(it.p.minTerm)>1?` · ขั้นต่ำ ${fmt(it.p.minTerm)} เดือน`:""}</small></div>
-        <div class="d">${esc(it.p.desc||"")}</div>
-        ${sh.showSave && it.per!=null ? `<div class="save">ตกครั้งละ ฿${fmt(Math.round(it.per))}${it.save!=null?` · <b>ถูกกว่าคลินิก ${pct(it.save)}</b>`:""}</div>`:""}
-      </div>`).join("")}</div>`).join("") || `<p style="opacity:.6">ยังไม่มีโปรแกรมที่เลือกแสดง</p>`}</div>
+        <div class="p">฿${fmt(it.price)}<small>ต่อเครื่อง / ${KINDS[k].unit}</small></div>
+        <div class="d">${esc(it.p.desc||"")}<br>${schedText(it.p)}</div>
+        ${sh.showSave&&it.per!=null?`<div class="save">ทีม ${fmt(it.b.athletes)} คน ตกคนละ ฿${fmt(Math.round(it.per))} / ครั้ง${it.save!=null?` · <b>ถูกกว่าคลินิก ${pct(it.save)}</b>`:""}</div>`:""}</div>`).join("")}</div>`).join("") || `<p style="opacity:.6">ยังไม่มีแพ็กเกจที่เลือกแสดง</p>`}</div>
     ${sh.showCond?`<div class="pl-cond"><b>เงื่อนไข</b>
-      <span>มัดจำ ฿${fmt(pol.deposit)} คืนเต็มจำนวนเมื่อคืนเครื่องสภาพเรียบร้อย · คืนช้าปรับ ฿${fmt(pol.lateFee)} / วัน</span>
-      <span>สมาชิกรายเดือนพักได้ปีละ ${fmt(pol.pauseDays)} วัน · ถ้าตัดสินใจซื้อเครื่อง นำค่าเช่าที่จ่ายแล้ว ${fmt(pol.rtoCreditPct)}% มาเป็นส่วนลด</span>
-      <span>ผู้มีภาวะลิ่มเลือด ขาอักเสบหรือติดเชื้อ หรือตั้งครรภ์ ควรปรึกษาแพทย์ก่อนใช้ · ราคาเทียบคลินิกในกรุงเทพฯ เฉลี่ย ฿${fmt(Math.round(clinic))} / 30 นาที</span></div>`:""}
-    <div class="pl-foot"><span>${esc(sh.contact)}</span><span>${esc(sh.phone||"")}</span></div>
-  </div>`;
+      <span>ส่งและรับเครื่องถึงที่ด้วยมอเตอร์ไซค์ ไม่มีค่าส่งเพิ่มในพื้นที่ ${esc(S.delivery.base)}</span>
+      <span>มัดจำ ฿${fmt(pol.deposit)} ต่อเครื่อง คืนเมื่อจบสัญญา · ยกเลิกหรือเลื่อนวันแจ้งล่วงหน้า ${fmt(pol.cancelHours)} ชม. · คืนช้าปรับ ฿${fmt(pol.lateFee)} / วัน</span>
+      <span>ผู้มีภาวะลิ่มเลือด ขาอักเสบหรือติดเชื้อ หรือตั้งครรภ์ ควรปรึกษาแพทย์ก่อนใช้ · ราคาคลินิกในกรุงเทพฯ เฉลี่ย ฿${fmt(Math.round(clinic))} / 30 นาที</span></div>`:""}
+    <div class="pl-foot"><span>${esc(sh.contact)}</span><span>${esc(sh.phone||"")}</span></div></div>`;
 }
 function pSheet(){
   const sh=S.sheet;
   return `<section class="view">
-  <div class="page-title"><div><div class="eyebrow">Price List</div><h1>ใบราคา</h1>
-    <p class="lead">ใบรายการโปรแกรมสำหรับส่งให้ลูกค้าหรือสโมสร ใช้ราคาที่ตั้งไว้ ณ ตอนนี้ กดบันทึกเป็นรูป PDF หรือ Excel ได้ทันที</p></div></div>
+  <div class="page-title"><div><div class="eyebrow">Price List</div><h1>ใบราคา</h1><p class="lead">ใบเสนอแพ็กเกจสำหรับผู้จัดการทีม ใช้ราคา ณ ตอนนี้ กดบันทึกหรือแชร์ได้ทันที</p></div></div>
   <div class="card flat">
-    <div class="btns">
-      <button class="btn" data-act="exp" data-f="png">${ICON.dl} รูปภาพ</button>
-      <button class="btn ghost" data-act="exp" data-f="pdf">${ICON.dl} PDF</button>
-      <button class="btn ghost" data-act="exp" data-f="xlsx">${ICON.dl} Excel</button>
-      <button class="btn ghost" data-act="exp" data-f="csv">${ICON.dl} CSV</button>
-      ${!IN_CLAUDE?`<button class="btn ghost" data-act="exp" data-f="share" id="shareBtn">${ICON.share} แชร์</button><button class="btn ghost hide-sm" data-act="print">พิมพ์</button>`:""}
-    </div>
+    <div class="btns"><button class="btn" data-act="exp" data-f="png">${ICON.dl} รูปภาพ</button><button class="btn ghost" data-act="exp" data-f="pdf">${ICON.dl} PDF</button><button class="btn ghost" data-act="exp" data-f="xlsx">${ICON.dl} Excel</button><button class="btn ghost" data-act="exp" data-f="csv">${ICON.dl} CSV</button>
+      ${!IN_CLAUDE?`<button class="btn ghost" data-act="exp" data-f="share">${ICON.share} แชร์</button><button class="btn ghost hide-sm" data-act="print">พิมพ์</button>`:""}</div>
     <div class="scroll-x">
       <button class="chip" data-act="sheetOpt" data-k="layout" data-v="a4" aria-pressed="${sh.layout!=="story"}">แนวตั้ง A4</button>
       <button class="chip" data-act="sheetOpt" data-k="layout" data-v="story" aria-pressed="${sh.layout==="story"}">สตอรี่ IG / LINE</button>
       <button class="chip" data-act="sheetOpt" data-k="dark" data-v="${!sh.dark}" aria-pressed="${!!sh.dark}">พื้นดำ</button>
       <button class="chip" data-act="sheetOpt" data-k="showSave" data-v="${!sh.showSave}" aria-pressed="${!!sh.showSave}">แสดงความคุ้ม</button>
       <button class="chip" data-act="sheetOpt" data-k="showCond" data-v="${!sh.showCond}" aria-pressed="${!!sh.showCond}">แสดงเงื่อนไข</button>
-      <button class="chip" data-act="sheetText">แก้ข้อความ / ช่องทางติดต่อ</button>
-    </div>
-    <div class="scroll-x" aria-label="เลือกโปรแกรมที่แสดง">${S.programs.filter(p=>p.on).map(p=>`<button class="chip" data-act="sheetToggle" data-id="${p.id}" aria-pressed="${!(sh.hidden||[]).includes(p.id)}">${esc(p.name)}</button>`).join("")}</div>
+      <button class="chip" data-act="sheetText">แก้ข้อความ / ช่องทางติดต่อ</button></div>
+    <div class="scroll-x">${S.packages.filter(p=>p.on).map(p=>`<button class="chip" data-act="sheetToggle" data-id="${p.id}" aria-pressed="${!(sh.hidden||[]).includes(p.id)}">${esc(p.name)}</button>`).join("")}</div>
   </div>
   <div class="pl-wrap">${priceListHTML()}</div>
   </section>`;
-}
-
-function pClubs(R){
-  const list = S.clubs.map((c,i)=>({c,i})).filter(({c})=>flt.clubStatus==="all"||c.status===flt.clubStatus);
-  const total=S.clubs.length||1;
-  const pPrice = c => { const p=progById(c.programId); return p? n(p.price)*n(S.whatIf.price)/100 : 0; };
-  const pend=S.clubs.filter(c=>c.status!=="won"&&c.status!=="lost");
-  const exp = pend.reduce((a,c)=>a+n(c.seats)*n(c.prob)/100*pPrice(c),0);
-  const won = S.clubs.filter(c=>c.status==="won");
-  return `<section class="view">
-  <div class="page-title"><div><div class="eyebrow">Customers & Clubs</div><h1>ลูกค้า / สโมสร</h1>
-    <p class="lead">แตะชื่อเพื่อแก้ไข กดปุ่มสถานะเพื่อเลื่อนขั้น เมื่อเป็น "ลูกค้าแล้ว" ที่นั่งจะนับเข้ารายได้อัตโนมัติ</p></div>
-    <button class="btn" data-act="addClub">+ เพิ่มสโมสร</button></div>
-  <div class="big3">
-    <div class="bigstat"><span class="l">สโมสรทั้งหมด</span><span class="v num">${fmt(S.clubs.length)}</span><span class="s">ลูกค้าแล้ว ${won.length} · กำลังคุย ${pend.length}</span></div>
-    <div class="bigstat"><span class="l">ที่นั่งที่นับเข้ารายได้แล้ว</span><span class="v num">${fmt(won.reduce((a,c)=>a+n(c.seats),0))}</span><span class="s">จากสโมสรที่เป็นลูกค้าแล้ว</span></div>
-    <div class="bigstat"><span class="l">รายได้ที่รออยู่ / เดือน</span><span class="v num">${baht(exp)}</span><span class="s">ถ้าปิดการขายได้ตามโอกาสที่ใส่</span></div>
-  </div>
-  <div class="card"><h3>สถานะการขาย</h3>
-    <div class="seg">${STATUS.map(s=>`<span style="width:${(S.clubs.filter(c=>c.status===s.k).length/total*100).toFixed(1)}%;background:var(${s.color})" title="${s.label}"></span>`).join("")}</div>
-    <div class="legend">${STATUS.map(s=>`<span><i class="dot" style="background:var(${s.color})"></i>${s.label} ${S.clubs.filter(c=>c.status===s.k).length}</span>`).join("")}</div></div>
-  <div class="scroll-x" role="group" aria-label="กรองสถานะ">
-    <button class="chip" data-flt="clubStatus" data-v="all" aria-pressed="${flt.clubStatus==="all"}">ทั้งหมด</button>
-    ${STATUS.map(s=>`<button class="chip" data-flt="clubStatus" data-v="${s.k}" aria-pressed="${flt.clubStatus===s.k}">${s.label}</button>`).join("")}
-  </div>
-  ${list.length?`<div class="rows">${list.map(({c,i})=>{
-    const s=STATUS.find(x=>x.k===c.status)||STATUS[0], p=progById(c.programId);
-    return `<div class="row" data-act="editClub" data-i="${i}" role="button" tabindex="0">
-      <div><div class="t">${esc(c.name)}</div><div class="s">${esc(c.type||"")}${c.area?" · "+esc(c.area):""}${p?" · "+esc(p.name):""}</div></div>
-      <div style="display:grid;gap:4px;justify-items:end"><button class="tag" style="border:0;cursor:pointer;background:color-mix(in srgb, var(${s.color}) 18%, transparent)" data-act="nextStatus" data-i="${i}" title="กดเพื่อเลื่อนสถานะ">${s.label} ›</button>
-      <span class="rs">${n(c.seats)?fmt(c.seats)+" ที่นั่ง · "+baht(n(c.seats)*pPrice(c))+"/ด.":"ยังไม่ใส่ที่นั่ง"}</span></div></div>`;}).join("")}</div>`
-  : `<div class="empty">${S.clubs.length?"ไม่มีสโมสรในสถานะนี้":"ยังไม่มีรายชื่อ เริ่มจากชมรมวิ่ง ยิม HYROX หรือชมรมกีฬามหาวิทยาลัย"}<button class="btn sm" data-act="addClub">+ เพิ่มสโมสร</button></div>`}
-  </section>`;
-}
-
-function marketSummary(){
-  const rents=S.refs.filter(r=>r.kind==="rent"&&r.bench!==false&&n(r.price)>0&&refDays(r));
-  const by = (lo,hi)=>rents.filter(r=>refDays(r)>=lo&&refDays(r)<=hi).map(refPerDay);
-  const ses=S.refs.filter(r=>r.kind==="session"&&n(r.price)>0);
-  const ret=S.refs.filter(r=>r.kind==="retail"&&n(r.price)>0&&r.country==="ไทย").map(refTHB);
-  return [
-    ["คลินิกในไทย","ต่อ 30 นาที", avg(ses.filter(r=>r.inAvg).map(refPer30)), ses.filter(r=>r.inAvg).length],
-    ["บริการต่างประเทศ","ต่อ 30 นาที", median(ses.filter(r=>r.country!=="ไทย").map(refPer30).filter(Boolean)), ses.filter(r=>r.country!=="ไทย").length],
-    ["เช่า 1–2 วัน","ต่อวัน", median(by(1,2)), by(1,2).length],
-    ["เช่าราวสัปดาห์","ต่อวัน", median(by(6,20)), by(6,20).length],
-    ["เช่ารายเดือน","ต่อเดือน", median(by(21,999))*30, by(21,999).length],
-    ["ซื้อเครื่องในไทย","ต่อเครื่อง", median(ret), ret.length]
-  ];
-}
-function pMarket(){
-  const list=S.refs.map((r,i)=>({r,i})).filter(({r})=>(flt.refScope==="all"||(flt.refScope==="th"?r.country==="ไทย":r.country!=="ไทย"))&&(flt.refKind==="all"||r.kind===flt.refKind));
-  return `<section class="view">
-  <div class="page-title"><div><div class="eyebrow">Market Research</div><h1>ข้อมูลตลาด</h1>
-    <p class="lead">ราคาจากไทยและต่างประเทศ แปลงเป็นบาทให้แล้ว ราคาในหน้าตั้งราคาใช้ข้อมูลชุดนี้ เพิ่มหรือแก้ได้ทุกเมื่อ</p></div>
-    <button class="btn" data-act="addRef">+ เพิ่มแหล่งอ้างอิง</button></div>
-  <div class="grid3">${marketSummary().map(([t,u,v,c])=>`<div class="bigstat"><span class="l">${t}</span><span class="v num">${v?baht(v):"-"}</span><span class="s">${u} · จาก ${c} แหล่ง</span></div>`).join("")}</div>
-  <div class="card flat"><div class="btns" style="justify-content:space-between"><span style="font-size:14px">ในไทยยังไม่มีเจ้าที่ประกาศราคาเช่ารายวัน จึงใช้ราคาต่างประเทศ × <b>${fmt(S.market.localFactor)}%</b> เป็นตัวเทียบ</span>
-    <span class="btns">${[50,60,70,80,100].map(v=>`<button class="chip" data-act="setLocal" data-v="${v}" aria-pressed="${n(S.market.localFactor)===v}">${v}%</button>`).join("")}</span></div></div>
-  <div class="grid2">
-    <div class="card"><h3>เช่ายิ่งนาน ยิ่งถูกต่อวัน</h3><p class="hint">จุดเทา = คู่แข่ง · จุดดำ = ของเรา · แกนนอนคือจำนวนวันที่เช่า</p><div class="chart tall"><canvas id="chCurve" role="img" aria-label="กราฟราคาเช่าต่อวันตามระยะเวลา"></canvas></div></div>
-    <div class="card"><h3>บริการต่อ 30 นาที</h3><p class="hint">น้ำเงิน = ไทย · เทา = ต่างประเทศ · ดำ = ของเรา</p><div class="chart tall"><canvas id="chSes" role="img" aria-label="กราฟราคาบริการต่อ 30 นาที"></canvas></div></div>
-  </div>
-  <div class="scroll-x">
-    ${[["all","ทั้งหมด"],["th","ไทย"],["ab","ต่างประเทศ"]].map(([k,l])=>`<button class="chip" data-flt="refScope" data-v="${k}" aria-pressed="${flt.refScope===k}">${l}</button>`).join("")}
-    <span style="flex:none;width:8px"></span>
-    <button class="chip" data-flt="refKind" data-v="all" aria-pressed="${flt.refKind==="all"}">ทุกประเภท</button>
-    ${Object.entries(REF_KINDS).map(([k,l])=>`<button class="chip" data-flt="refKind" data-v="${k}" aria-pressed="${flt.refKind===k}">${l}</button>`).join("")}
-  </div>
-  ${list.length?`<div class="rows">${list.map(({r,i})=>{
-    const norm = r.kind==="rent"&&refPerDay(r)? baht(refPerDay(r)) : r.kind==="session"&&refPer30(r)? baht(refPer30(r)) : n(r.price)? baht(refTHB(r)) : "-";
-    const unit = r.kind==="rent"?"ต่อวัน":r.kind==="session"?"ต่อ 30 นาที":r.kind==="retail"?"ต่อเครื่อง":"";
-    return `<div class="row" data-act="editRef" data-i="${i}" role="button" tabindex="0">
-      <div><div class="t">${esc(r.name)}</div><div class="s">${esc(r.item||"")} · ${esc(r.country||"")}${n(r.price)?` · ${fmt(r.price,2)} ${esc(r.currency)}${r.unit!=="item"?` / ${fmt(r.qty)} ${UNITS[r.unit]||""}`:""}`:""}${r.inAvg?" · ใช้หาค่าเฉลี่ย":""}${r.kind==="rent"&&r.bench===false?" · ไม่ใช้เทียบ":""}</div>
-      ${r.note?`<div class="s">${esc(r.note)}</div>`:""}${r.url?`<a class="s" href="${esc(r.url)}" target="_blank" rel="noopener" data-stop="1">เปิดแหล่งที่มา ↗</a>`:""}</div>
-      <div><div class="r num">${norm}</div><div class="rs">${unit} · ${REF_KINDS[r.kind]||""}</div></div></div>`;}).join("")}</div>`
-  : `<div class="empty">ไม่มีข้อมูลตามตัวกรองนี้<button class="btn sm" data-act="addRef">+ เพิ่มแหล่งอ้างอิง</button></div>`}
-  </section>`;
-}
-
-function pCosts(R){
-  const st=R.st, rev=Math.max(1,st.rev);
-  const flow=[["ค่าส่ง / ทำความสะอาด",st.vc,"--c5"],["ส่วนแบ่งให้สถานที่",st.sh,"--c4"],["กันเงินซ่อม + ค่าธรรมเนียม",st.loss,"--c2"],["ค่าใช้จ่ายคงที่",st.fixed,"--c3"],["ภาษี",st.tax,"--c5"],["เหลือเป็นกำไร",st.net,"--good"]];
-  return `<section class="view">
-  <div class="page-title"><div><div class="eyebrow">Costs</div><h1>ต้นทุน</h1><p class="lead">ตัวเลขที่ใช้บ่อยอยู่ด้านบน ส่วนรายละเอียดอื่นกดเปิดดูได้</p></div></div>
-  <div class="card"><h3>เครื่อง</h3><div class="fields">
-    ${field("machine.count","จำนวนเครื่อง",{unit:"เครื่อง",step:1,min:0})}
-    ${field("machine.price","ราคาซื้อต่อเครื่อง",{unit:"บาท",step:500,help:"นำเข้าเอง ≈ 34,000 · ตัวแทน 39,999"})}
-    ${field("machine.accessories","อุปกรณ์เสริมต่อเครื่อง",{unit:"บาท",step:500})}
-    ${field("ops.targetMonths","เป้าคืนทุน",{unit:"เดือน",step:1})}
-  </div>
-  <div class="btns"><span class="hint">ราคาเครื่องด่วน:</span>${[[34000,"นำเข้า 34,000"],[34199,"Play Strong 34,199"],[39999,"ตัวแทน 39,999"],[45999,"ราคาเต็ม 45,999"]].map(([v,l])=>`<button class="chip" data-act="setMachinePrice" data-v="${v}" aria-pressed="${n(S.machine.price)===v}">${l}</button>`).join("")}</div></div>
-
-  <div class="big3">
-    <div class="bigstat"><span class="l">ลงทุนครั้งแรก</span><span class="v num">${out("inv")}</span><span class="s">รวมค่าเริ่มต้น ${baht(R.setup)}</span></div>
-    <div class="bigstat"><span class="l">ค่าใช้จ่ายคงที่ / เดือน</span><span class="v num">${out("fix")}</span><span class="s">รวมเงินเก็บเปลี่ยนปลอกขา ${baht(R.sleeveM)}</span></div>
-    <div class="bigstat"><span class="l">เครื่องที่ควรมี</span><span class="v num">${out("need")}</span><span class="s">ใช้เครื่อง ${out("util")} ของเวลา</span></div>
-  </div>
-
-  <div class="card"><h3>รายได้ 100 บาท ไปไหนบ้าง</h3>
-    <div class="hbar">${flow.map(([t,v,c])=>`<div class="hbar-row"><span class="t">${t}</span><span class="v num">${fmt(v/rev*100,1)} บาท</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(0,Math.min(100,v/rev*100)).toFixed(1)}%;background:var(${t==="เหลือเป็นกำไร"&&v<0?"--bad":c})"></div></div></div>`).join("")}</div></div>
-
-  <div class="grid2">
-    <div class="card"><div class="page-title"><h3>จ่ายครั้งเดียวตอนเริ่ม</h3><button class="btn ghost sm" data-act="addRow" data-list="setup">+ เพิ่ม</button></div>${listRows("setup")}</div>
-    <div class="card"><div class="page-title"><h3>จ่ายทุกเดือน</h3><button class="btn ghost sm" data-act="addRow" data-list="monthly">+ เพิ่ม</button></div>${listRows("monthly")}</div>
-  </div>
-
-  <details class="card"><summary><h3 style="display:inline">ตั้งค่าเพิ่มเติม</h3></summary><div style="display:grid;gap:16px;margin-top:14px">
-    <div class="fields">
-      ${field("ops.cleaning","ทำความสะอาดต่อครั้ง",{unit:"บาท",step:10})}
-      ${field("ops.tripCost","ค่าส่ง 1 เที่ยว",{unit:"บาท",step:10})}
-      ${field("ops.deliveryShare","ลูกค้าที่ให้ไปส่ง-รับ",{unit:"%",step:10})}
-      ${field("ops.consumable","ของใช้ต่อรอบบริการ",{unit:"บาท",step:5})}
-      ${field("ops.damagePct","กันเงินซ่อม",{unit:"% ของรายได้",step:1,help:"ประกันมักไม่คุ้มครองการใช้เชิงพาณิชย์"})}
-      ${field("ops.payFeePct","ค่าธรรมเนียมรับเงิน",{unit:"%",step:.5})}
-      ${field("ops.taxPct","ภาษีจากกำไร",{unit:"%",step:1})}
-      ${field("machine.maxUtil","ใช้เครื่องได้สูงสุด",{unit:"% ของเวลา",step:5})}
-      ${field("machine.sessionMin","1 รอบบริการ + ทำความสะอาด",{unit:"นาที",step:5})}
-      ${field("machine.openHours","จุดบริการเปิดวันละ",{unit:"ชั่วโมง",step:1})}
-      ${field("machine.sleeveCost","ค่าเปลี่ยนปลอกขา",{unit:"บาท",step:500})}
-      ${field("machine.sleeveEvery","เปลี่ยนปลอกขาทุก",{unit:"เดือน",step:1})}
-      ${field("machine.lifeMonths","อายุเครื่อง",{unit:"เดือน",step:6})}
-      ${field("machine.resalePct","ขายต่อได้",{unit:"% ของราคา",step:5})}
-      ${field("ops.rampStart","เดือนแรกได้ลูกค้า",{unit:"% ของเป้า",step:10})}
-      ${field("ops.rampMonths","ลูกค้าครบในเดือนที่",{unit:"เดือน",step:1})}
-      ${field("ops.growthPct","ลูกค้าโตต่อเดือน",{unit:"%",step:1})}
-      ${field("ops.horizon","ดูแผนล่วงหน้า",{unit:"เดือน",step:6})}
-    </div></div></details>
-
-  <div class="card"><div class="page-title"><h3>ตารางรายเดือน</h3><button class="btn ghost sm" data-act="exp" data-f="planxlsx">${ICON.dl} Excel</button></div>
-    <div class="tbl-wrap" data-o="monthTable"></div></div>
-  </section>`;
-}
-function listRows(list){
-  return S[list].length ? `<div style="display:grid;gap:10px">${S[list].map((x,i)=>`<div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 36px;gap:8px;align-items:center">
-    <input type="text" aria-label="ชื่อรายการ" data-k="${list}.${i}.name" value="${esc(x.name)}">
-    ${stepper(`${list}.${i}.amount`, n(x.amount), {sm:true,step:500,label:"จำนวนเงิน"})}
-    <button class="xbtn" data-act="del" data-list="${list}" data-i="${i}" aria-label="ลบรายการ">×</button></div>`).join("")}</div>` : `<p class="hint">ยังไม่มีรายการ</p>`;
 }
 
 function pConfig(){
   const ua=navigator.userAgent, ios=/iPhone|iPad|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1), mac=/Macintosh/.test(ua)&&!ios, safari=/Safari/.test(ua)&&!/Chrome|CriOS|Edg|FxiOS/.test(ua);
   return `<section class="view">
   <div class="page-title"><div><div class="eyebrow">Settings</div><h1>ตั้งค่า</h1></div></div>
-  ${!IN_CLAUDE?`<div class="card"><h3>ติดตั้งเป็นแอป</h3>
-    ${isStandalone()?`<p class="hint">กำลังใช้งานแบบแอปอยู่แล้ว ✓</p>`:""}
-    <div class="grid3">
-      <div class="card flat"><b>iPhone / iPad</b><p class="hint">เปิดใน Safari → กดปุ่มแชร์ ${ICON.share.replace('<svg','<svg style="width:14px;height:14px;vertical-align:-2px"')} → "เพิ่มไปยังหน้าจอโฮม"</p>${ios?`<span class="tag good">เครื่องนี้</span>`:""}</div>
-      <div class="card flat"><b>Mac (Safari)</b><p class="hint">เมนู File (ไฟล์) → "Add to Dock" (เพิ่มไปยัง Dock) แอปจะเปิดเป็นหน้าต่างแยก</p>${mac&&safari?`<span class="tag good">เครื่องนี้</span>`:""}</div>
-      <div class="card flat"><b>Chrome / Edge</b><p class="hint">กดไอคอนติดตั้งที่แถบที่อยู่ หรือปุ่มด้านล่าง</p><button class="btn sm" data-act="install" id="installBtn" ${window.__bip?"":"hidden"}>ติดตั้งแอป</button></div>
-    </div></div>`:""}
-  <div class="card"><h3>ย้ายข้อมูลไปอีกเครื่อง</h3>
-    <p class="hint">${IN_CLAUDE?"ข้อมูลบันทึกในบัญชีอัตโนมัติ":"ข้อมูลเก็บอยู่ในเครื่องนี้ ถ้าจะใช้ต่อบนอีกเครื่อง ให้ส่งลิงก์ข้อมูลหรือไฟล์สำรองไปเปิด"}</p>
-    <div class="btns">
-      ${!IN_CLAUDE?`<button class="btn" data-act="shareLink">${ICON.share} ส่งลิงก์ข้อมูลไปเครื่องอื่น</button>`:""}
-      <button class="btn ghost" data-act="exp" data-f="json">${ICON.dl} ไฟล์สำรอง (.json)</button>
-      <label class="btn ghost" style="cursor:pointer">นำเข้าไฟล์สำรอง<input type="file" accept=".json,application/json" id="importFile" hidden></label>
-    </div>
+  ${!IN_CLAUDE?`<div class="card"><h3>ติดตั้งเป็นแอป</h3>${isStandalone()?`<p class="hint">กำลังใช้งานแบบแอปอยู่แล้ว ✓</p>`:""}
+    <div class="grid3"><div class="card flat"><b>iPhone / iPad</b><p class="hint">Safari → ปุ่มแชร์ → "เพิ่มไปยังหน้าจอโฮม"</p>${ios?`<span class="tag good">เครื่องนี้</span>`:""}</div>
+      <div class="card flat"><b>Mac (Safari)</b><p class="hint">เมนู File → "Add to Dock"</p>${mac&&safari?`<span class="tag good">เครื่องนี้</span>`:""}</div>
+      <div class="card flat"><b>Chrome / Edge</b><p class="hint">ไอคอนติดตั้งที่แถบที่อยู่</p><button class="btn sm" data-act="install" id="installBtn" ${window.__bip?"":"hidden"}>ติดตั้งแอป</button></div></div></div>`:""}
+  <div class="card"><h3>ย้ายข้อมูลไปอีกเครื่อง</h3><p class="hint">${IN_CLAUDE?"ข้อมูลบันทึกในบัญชีอัตโนมัติ":"ข้อมูลเก็บในเครื่องนี้ ส่งลิงก์หรือไฟล์สำรองไปเปิดบนอีกเครื่อง"}</p>
+    <div class="btns">${!IN_CLAUDE?`<button class="btn" data-act="shareLink">${ICON.share} ส่งลิงก์ข้อมูล</button>`:""}<button class="btn ghost" data-act="exp" data-f="json">${ICON.dl} ไฟล์สำรอง</button>
+      <label class="btn ghost" style="cursor:pointer">นำเข้าไฟล์สำรอง<input type="file" accept=".json,application/json" id="importFile" hidden></label></div>
     <textarea id="linkBox" hidden readonly aria-label="ลิงก์ข้อมูล"></textarea></div>
-  <div class="card"><h3>อัตราแลกเปลี่ยน (1 หน่วย = กี่บาท)</h3><p class="hint">ใช้แปลงราคาต่างประเทศ ควรปรับให้ตรงวันที่ใช้งาน</p>
-    <div class="fields">${Object.keys(S.fx).filter(k=>k!=="THB").map(k=>field("fx."+k,k,{unit:"บาท",step:.5})).join("")}</div></div>
-  <div class="card"><h3>เริ่มใหม่</h3><p class="hint">คืนค่าตัวเลขเป็นค่าตั้งต้น รายชื่อสโมสรและข้อมูลตลาดยังอยู่</p>
-    <div class="btns"><button class="btn danger" data-act="askReset">คืนค่าตัวเลข</button></div>
-    <div id="resetConfirm" hidden class="banner"><span>ยืนยันคืนค่าตัวเลขทั้งหมด?</span><span class="btns"><button class="btn sm" data-act="doReset">ยืนยัน</button><button class="btn ghost sm" data-act="cancelReset">ยกเลิก</button></span></div></div>
+  <div class="card"><h3>อัตราแลกเปลี่ยน (1 หน่วย = กี่บาท)</h3><div class="fields">${Object.keys(S.fx).filter(k=>k!=="THB").map(k=>field("fx."+k,k,{unit:"บาท",step:.5})).join("")}</div></div>
+  <div class="card"><h3>เริ่มใหม่</h3><p class="hint">คืนแพ็กเกจและตัวเลขเป็นค่าตั้งต้น รายชื่อสโมสรและข้อมูลตลาดยังอยู่</p>
+    <div class="btns"><button class="btn danger" data-act="askReset">คืนค่าเริ่มต้น</button></div>
+    <div id="resetConfirm" hidden class="banner"><span>ยืนยัน?</span><span class="btns"><button class="btn sm" data-act="doReset">ยืนยัน</button><button class="btn ghost sm" data-act="cancelReset">ยกเลิก</button></span></div></div>
   </section>`;
 }
 
-/* ================= sheet editors ================= */
-function editProgram(i){
-  const pre=`programs.${i}`, p=S.programs[i];
-  openSheet("แก้ไขโปรแกรม", `
-    ${field(pre+".name","ชื่อโปรแกรม",{type:"text",wide:true})}
+/* ================= editors (sheets) ================= */
+function editPackage(i){
+  const pre=`packages.${i}`, p=S.packages[i];
+  openSheet("แก้ไขแพ็กเกจ", `
+    ${field(pre+".name","ชื่อแพ็กเกจ",{type:"text",wide:true})}
     ${field(pre+".desc","คำอธิบาย (แสดงในใบราคา)",{type:"text",wide:true})}
     <div class="fields">
-      ${field(pre+".group","ประเภท",{type:"select",options:Object.entries(GROUPS).map(([k,g])=>[k,g.label])})}
-      ${field(pre+".per","คิดเงินต่อ",{type:"select",options:[["ครั้ง","ครั้ง"],["เดือน","เดือน"]]})}
-      ${field(pre+".useType","ใช้เครื่องแบบ",{type:"select",rr:true,options:[["days","ยืมกลับบ้าน (วัน)"],["sessions","มาใช้ที่จุดบริการ (รอบ)"]]})}
-      ${field(pre+".use", p.useType==="sessions"?"จำนวนรอบที่ได้":"เครื่องไม่อยู่กี่วัน (รวมรับ-ส่ง)",{unit:p.useType==="sessions"?"รอบ":"วัน",step:p.useType==="sessions"?1:.5})}
-      ${p.useType==="days"?field(pre+".uses","ลูกค้าได้ใช้จริง",{unit:"ครั้ง",step:1}):""}
-      ${field(pre+".handovers","ส่ง-รับเครื่องต่อหน่วย",{unit:"รอบ",step:1,help:"ใช้คิดค่าส่งและทำความสะอาด"})}
-      ${field(pre+".revShare","แบ่งให้สถานที่",{unit:"%",step:5})}
-      ${field(pre+".minTerm","สัญญาขั้นต่ำ",{unit:"เดือน",step:1})}
+      ${field(pre+".kind","รูปแบบการใช้",{type:"select",rr:true,options:Object.entries(KINDS).map(([k,g])=>[k,g.label])})}
+      ${field(pre+".athletes","นักกีฬาที่ใช้ต่อวัน (โดยประมาณ)",{unit:"คน",step:1,min:1,help:"ใช้คิด 'ตกคนละกี่บาท' ในใบราคา"})}
     </div>
-    ${field(pre+".on","เปิดขายโปรแกรมนี้",{type:"check"})}`,
-    `<button class="btn danger sm" data-act="delProgram" data-i="${i}">ลบโปรแกรม</button><button class="btn ghost sm" data-act="dupProgram" data-i="${i}">ทำสำเนา</button><button class="btn sm" data-act="closeSheet">เสร็จ</button>`,
-    ()=>render(false));
-}
-function addProgramSheet(){
-  openSheet("เพิ่มโปรแกรม", `<p class="hint">เลือกแบบที่ใกล้ที่สุด แล้วค่อยปรับราคาและรายละเอียด</p><div class="tpl">
-    ${Object.entries(GROUPS).map(([k,g])=>`<button data-act="addProgramType" data-g="${k}"><span>${groupTag(k)}</span><b>${g.label}</b><span class="hint">${g.desc}</span></button>`).join("")}</div>`);
+    <p class="explain">${KINDS[p.kind].desc}</p>
+    ${field(pre+".on","เปิดขายแพ็กเกจนี้",{type:"switch",rr:true})}`,
+    `<button class="btn danger sm" data-act="delPackage" data-i="${i}">ลบ</button><button class="btn ghost sm" data-act="dupPackage" data-i="${i}">ทำสำเนา</button><button class="btn sm" data-act="closeSheet">เสร็จ</button>`,
+    ()=>render(false), ()=>editPackage(i));
 }
 function editClub(i){
-  const pre=`clubs.${i}`;
-  openSheet("แก้ไขสโมสร", `
-    ${field(pre+".name","ชื่อสโมสร / ยิม",{type:"text",wide:true})}
+  const pre=`clubs.${i}`, c=S.clubs[i], p=pkgById(c.packageId);
+  let b=p?bookingOf(p,c):null;
+  const mb = (p && p.kind==="weekly" && c.addMatch && matchPkg()) ? bookingOf(matchPkg(),c) : null;
+  if(b && mb) b=Object.assign({},b,{revenue:b.revenue+mb.revenue, trips:b.trips+mb.trips, km_month:b.km_month+mb.km_month, variable:b.variable+mb.variable, perAthlete:(b.revenue+mb.revenue)/Math.max(1,(b.useDays+mb.useDays)*b.athletes)});
+  let sched="";
+  if(p && p.kind==="weekly") sched=`<div><span class="field-lab">ทีมนี้ใช้วันไหนบ้าง</span>${dayPicker(pre+".days",c.days||[],{span:p.leave})}
+      <div class="btns" style="margin-top:8px"><button class="chip soft" data-act="clubDaysFromPkg" data-i="${i}">ใช้วันตามแพ็กเกจ (${daysTxt(p.days)})</button></div></div>`;
+  const mp=matchPkg();
+  if(p && p.kind==="weekly" && mp) sched+=field(pre+".addMatch",`ใช้หลังแข่งด้วย (${esc(mp.name)} ${baht(mp.price)}/นัด/เครื่อง)`,{type:"switch",rr:true,help:"ส่งเครื่องไปสนามวันแข่ง เพิ่มจากวันซ้อมประจำ"});
+  if(p && (p.kind==="match" || (p.kind==="weekly" && c.addMatch))) sched+=`<div class="fields">${field(pre+".matches","แข่งกี่นัดต่อเดือน",{unit:"นัด",step:1})}
+      ${field(pre+".matchDay","วันแข่งส่วนใหญ่",{type:"select",num:true,options:ORDER.map(d=>[d,DAYNAME[d]])})}</div>`;
+  if(p && p.kind==="event") sched+=`<div class="fields">${field(pre+".events","ทัวร์นาเมนต์ต่อเดือน",{unit:"รายการ",step:.5,help:"เช่น ปีละ 6 รายการ = 0.5"})}</div>`;
+  openSheet("ตั้งค่าสโมสร", `
+    ${field(pre+".name","ชื่อสโมสร / ชมรม",{type:"text",wide:true})}
     <div class="fields">
-      ${field(pre+".type","ประเภท",{type:"select",options:CLUB_TYPES.map(t=>[t,t])})}
-      ${field(pre+".area","ย่าน",{type:"text"})}
       ${field(pre+".status","สถานะ",{type:"select",rr:true,options:STATUS.map(s=>[s.k,s.label])})}
-      ${field(pre+".programId","โปรแกรมที่เสนอ",{type:"select",options:S.programs.map(p=>[p.id,p.name])})}
-      ${field(pre+".seats","ที่นั่งที่คาดว่าจะขายได้",{unit:"คน",step:1})}
-      ${field(pre+".members","สมาชิกทั้งหมด (ถ้ารู้)",{unit:"คน",step:5})}
       ${field(pre+".prob","โอกาสปิดการขาย",{unit:"%",step:5})}
-      ${field(pre+".contact","ผู้ติดต่อ / ช่องทาง",{type:"text"})}
+      ${field(pre+".packageId","แพ็กเกจ",{type:"select",rr:true,options:S.packages.filter(x=>x.kind!=="personal").map(x=>[x.id,x.name])})}
+      ${field(pre+".units","เครื่องที่ใช้ต่อครั้ง",{unit:"เครื่อง",step:1,min:1})}
+    </div>
+    ${sched}
+    <div class="fields">
+      ${field(pre+".athletes","นักกีฬาที่ใช้ต่อวัน",{unit:"คน",step:1,min:1})}
+      ${field(pre+".km","ระยะจากจุดเก็บเครื่อง",{unit:"กม.",step:.5})}
+      ${field(pre+".start","เริ่มใช้เดือนที่",{unit:"เดือน",step:1,min:1})}
+      ${field(pre+".type","ประเภทกีฬา",{type:"select",options:CLUB_TYPES.map(t=>[t,t])})}
+      ${field(pre+".group","กลุ่ม",{type:"select",rr:true,options:[["จุฬาฯ","จุฬาฯ (เฟส 1)"],["นอกจุฬาฯ (เฟส 2)","นอกจุฬาฯ (เฟส 2)"]]})}
+      ${field(pre+".contact","ผู้ติดต่อ / LINE",{type:"text"})}
     </div>
     ${field(pre+".note","บันทึก",{type:"text",wide:true})}
-    ${field(pre+".url","ลิงก์อ้างอิง",{type:"url",wide:true,ph:"https://"})}`,
+    ${b?`<div class="kv"><span>รายได้ / เดือน</span><span>${baht(b.revenue)}</span><span>ขี่ส่ง-รับ / เดือน</span><span>${fmt(b.trips,1)} เที่ยว · ${fmt(b.km_month)} กม.</span><span>ค่าส่ง + ทำความสะอาด</span><span>${baht(b.variable)}</span><span>กำไรก่อนค่าเครื่อง</span><span>${baht(b.revenue-b.variable)}</span>${b.perAthlete!=null?`<span>นักกีฬาตกคนละ</span><span>${baht(b.perAthlete)} / ครั้ง</span>`:""}</div>`:""}`,
     `<button class="btn danger sm" data-act="delItem" data-list="clubs" data-i="${i}">ลบ</button><button class="btn sm" data-act="closeSheet">เสร็จ</button>`,
-    ()=>render(false));
+    ()=>render(false), ()=>editClub(i));
 }
 function editRef(i){
   const pre=`refs.${i}`, r=S.refs[i];
   openSheet("แหล่งอ้างอิง", `
-    ${field(pre+".name","ผู้ให้บริการ / ร้าน",{type:"text",wide:true})}
-    ${field(pre+".item","รายการ",{type:"text",wide:true})}
-    <div class="fields">
-      ${field(pre+".kind","ประเภท",{type:"select",rr:true,options:Object.entries(REF_KINDS)})}
-      ${field(pre+".country","ประเทศ",{type:"text"})}
+    ${field(pre+".name","ผู้ให้บริการ / ร้าน",{type:"text",wide:true})}${field(pre+".item","รายการ",{type:"text",wide:true})}
+    <div class="fields">${field(pre+".kind","ประเภท",{type:"select",rr:true,options:Object.entries(REF_KINDS)})}${field(pre+".country","ประเทศ",{type:"text"})}
       <div class="f"><label>ราคา</label><input class="plain" type="number" inputmode="decimal" data-k="${pre}.price" data-t="n" value="${esc(r.price)}"></div>
-      ${field(pre+".currency","สกุลเงิน",{type:"select",options:Object.keys(S.fx).map(k=>[k,k])})}
-      ${field(pre+".qty","จำนวน",{step:1,help:"เช่น 2 สัปดาห์ ใส่ 2"})}
-      ${field(pre+".unit","หน่วย",{type:"select",rr:true,options:Object.entries(UNITS)})}
-      ${r.unit==="session"?field(pre+".minutes","นาทีต่อรอบ",{step:15}):""}
-    </div>
-    ${r.kind==="session"?field(pre+".inAvg","ใช้หาค่าเฉลี่ยราคาคลินิกในไทย",{type:"check"}):""}
-    ${r.kind==="rent"?field(pre+".bench","ใช้เป็นราคาเทียบในหน้าตั้งราคา",{type:"check"}):""}
-    ${field(pre+".note","หมายเหตุ",{type:"text",wide:true})}
-    ${field(pre+".url","ลิงก์แหล่งที่มา",{type:"url",wide:true,ph:"https://"})}
+      ${field(pre+".currency","สกุลเงิน",{type:"select",options:Object.keys(S.fx).map(k=>[k,k])})}${field(pre+".qty","จำนวน",{step:1})}
+      ${field(pre+".unit","หน่วย",{type:"select",rr:true,options:Object.entries(UNITS)})}${r.unit==="session"?field(pre+".minutes","นาทีต่อรอบ",{step:15}):""}</div>
+    ${r.kind==="session"?field(pre+".inAvg","ใช้หาค่าเฉลี่ยราคาคลินิกในไทย",{type:"switch"}):""}
+    ${r.kind==="rent"?field(pre+".bench","ใช้เป็นราคาเทียบในหน้าแพ็กเกจ",{type:"switch"}):""}
+    ${field(pre+".note","หมายเหตุ",{type:"text",wide:true})}${field(pre+".url","ลิงก์แหล่งที่มา",{type:"url",wide:true,ph:"https://"})}
     ${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">เปิดแหล่งที่มา ↗</a>`:""}`,
     `<button class="btn danger sm" data-act="delItem" data-list="refs" data-i="${i}">ลบ</button><button class="btn sm" data-act="closeSheet">เสร็จ</button>`,
-    ()=>render(false));
+    ()=>render(false), ()=>editRef(i));
 }
 function basisSheet(i){
-  const p=S.programs[i], R=compute(), sg=suggestFor(p,R);
-  openSheet("ที่มาของราคา", `
-    <div class="prog-name">${esc(p.name)}</div>
-    <div class="card flat"><b>ราคาตลาด ${baht(sg.mk.price)}</b><span class="hint">${esc(sg.mk.basis)}</span></div>
-    <div class="card flat"><b>ต่ำสุดที่ยังคืนทุนใน ${fmt(S.ops.targetMonths)} เดือน ${baht(sg.fl.target)}</b><span class="hint">ค่าส่ง/ทำความสะอาด ${baht(varUnit(p))} + ค่าเครื่องและค่าใช้จ่ายคงที่ที่หารลงโปรแกรมนี้ ${baht(machineDays(p)*R.costPerMD)} แล้วเผื่อส่วนแบ่ง/ค่าซ่อม</span>
-      <span class="hint">ถ้าต่ำกว่า ${baht(sg.fl.cash)} จะขาดทุนทันทีทุกครั้งที่ขาย</span></div>
+  const p=S.packages[i], R=compute(), sg=suggestFor(p,R), b=bookingOf(p,{}), per=p.kind==="weekly"?1:Math.max(.0001,b.occ);
+  openSheet("ที่มาของราคา", `<div class="prog-name">${esc(p.name)}</div>
+    <div class="card flat"><b>ต่ำสุดที่คุ้มทุน ${baht(sg.fl.target)}</b>
+      <div class="kv"><span>ขี่ส่ง-รับ ${fmt(b.trips/per,1)} เที่ยว</span><span>${baht(b.delivery/per)}</span><span>ทำความสะอาด</span><span>${baht(b.cleaning/per)}</span><span>ของใช้สิ้นเปลือง</span><span>${baht(b.consum/per)}</span><span>ค่าเครื่อง + ค่าคงที่ (${fmt(b.busyDays/per,1)} วัน × ${baht(R.capDay)})</span><span>${baht(b.busyDays/per*R.capDay)}</span></div>
+      <span class="hint">ต่ำกว่า ${baht(sg.fl.cash)} จะขาดทุนทันทีทุกครั้ง · ค่าเครื่องคิดให้คืนทุนใน ${fmt(S.ops.targetMonths)} เดือน ถ้าเครื่องถูกใช้ 70% ของเวลา</span></div>
+    <div class="card flat"><b>ตลาด ${baht(sg.mk.price)}</b><span class="hint">${esc(sg.mk.basis)}</span>
+      <span class="hint">ถ้านักกีฬา ${fmt(p.athletes)} คนไปคลินิกเอง ทีมจะจ่ายรวม ${baht(sg.mk.clinic)}</span></div>
     <h3 style="font-size:14px">แหล่งที่ใช้เทียบ (${sg.mk.refs.length})</h3>
-    <div class="rows">${sg.mk.refs.map(r=>`<div class="row" style="cursor:default"><div><div class="t">${esc(r.name)}</div><div class="s">${esc(r.item||"")} · ${esc(r.country)}</div>${r.url?`<a class="s" href="${esc(r.url)}" target="_blank" rel="noopener">เปิดแหล่งที่มา ↗</a>`:""}</div><div class="r num">${r.kind==="rent"?baht(refPerDay(r))+"/วัน":baht(refPer30(r))+"/30น."}</div></div>`).join("")||`<div class="row">ยังไม่มีข้อมูล เพิ่มได้ที่หน้าตลาด</div>`}</div>`,
-    `<button class="btn ghost sm" data-act="goMarket">ไปหน้าตลาด</button><button class="btn sm" data-act="closeSheet">ปิด</button>`);
+    <div class="rows">${sg.mk.refs.map(r=>`<div class="row" style="cursor:default"><div><div class="t">${esc(r.name)}</div><div class="s">${esc(r.item||"")} · ${esc(r.country)}</div>${r.url?`<a class="s" href="${esc(r.url)}" target="_blank" rel="noopener">เปิดแหล่งที่มา ↗</a>`:""}</div><div class="r num">${baht(refPerDay(r))}/วัน</div></div>`).join("")||`<div class="row">ยังไม่มีข้อมูล</div>`}</div>`,
+    `<button class="btn ghost sm" data-go="market">ไปหน้าตลาด</button><button class="btn sm" data-act="closeSheet">ปิด</button>`);
 }
 function rulesSheet(){
   openSheet("ตั้งค่าการคิดราคา", `<div class="fields">
-    ${field("market.discount","เช่า: ถูกกว่าตลาด",{unit:"%",step:5})}
-    ${field("market.sessionDiscount","บริการต่อรอบ: ถูกกว่าคลินิก",{unit:"%",step:5,help:"คลินิกในเมืองแพง จึงลดมากกว่า"})}
-    ${field("market.markup","ต้นทุน + กำไร",{unit:"%",step:5})}
-    ${field("market.localFactor","ปรับราคาต่างประเทศให้เป็นราคาไทย",{unit:"%",step:5,help:"100% = ใช้ราคาต่างประเทศตรง ๆ"})}
-    ${field("ops.targetMonths","เป้าคืนทุน",{unit:"เดือน",step:1})}
-    ${field("value.clinicPrice","ราคาคลินิก / 30 นาที",{unit:"บาท",step:50,help:"0 = ใช้ค่าเฉลี่ยจากข้อมูลตลาด"})}
-  </div>`, `<button class="btn sm" data-act="closeSheet">เสร็จ</button>`, ()=>render(false));
+    ${field("market.discount","ราคาแนะนำถูกกว่าตลาด",{unit:"%",step:5})}${field("market.markup","ต้นทุน + กำไร",{unit:"%",step:5})}
+    ${field("market.localFactor","ปรับราคาต่างประเทศเป็นราคาไทย",{unit:"%",step:5})}${field("ops.targetMonths","เป้าคืนทุน",{unit:"เดือน",step:1})}
+    ${field("value.clinicPrice","ราคาคลินิก / 30 นาที",{unit:"บาท",step:50,help:"0 = ใช้ค่าเฉลี่ยจากหน้าตลาด"})}
+    ${field("whatIf.price","ปรับราคาทุกแพ็กเกจ",{unit:"% ของราคาที่ตั้ง",step:5})}</div>`,
+    `<button class="btn sm" data-act="closeSheet">เสร็จ</button>`, ()=>render(false), rulesSheet);
 }
 function sheetTextSheet(){
-  openSheet("ข้อความในใบราคา", `
-    ${field("sheet.title","หัวข้อ",{type:"text",wide:true})}
-    ${field("sheet.sub","คำอธิบายสั้น",{type:"text",wide:true})}
-    ${field("sheet.contact","ช่องทางติดต่อ",{type:"text",wide:true,ph:"LINE: @..."})}
-    ${field("sheet.phone","เบอร์โทร / IG",{type:"text",wide:true})}`, `<button class="btn sm" data-act="closeSheet">เสร็จ</button>`, ()=>render(false));
+  openSheet("ข้อความในใบราคา", `${field("sheet.title","หัวข้อ",{type:"text",wide:true})}${field("sheet.sub","คำอธิบายสั้น",{type:"text",wide:true})}${field("sheet.contact","ช่องทางติดต่อ",{type:"text",wide:true})}${field("sheet.phone","เบอร์โทร / IG",{type:"text",wide:true})}`,
+    `<button class="btn sm" data-act="closeSheet">เสร็จ</button>`, ()=>render(false));
+}
+function addPackageSheet(){
+  openSheet("เพิ่มแพ็กเกจ", `<div class="tpl">${Object.entries(KINDS).map(([k,g])=>`<button data-act="addPackageKind" data-k="${k}">${kindTag(k)}<b>${g.label}</b><span class="hint">${g.desc}</span></button>`).join("")}</div>`);
 }
 
 /* ================= outputs + charts ================= */
 function refresh(){
   const R=compute();
-  const o={
-    wiP: n(S.whatIf.price)+"%", wiD: n(S.whatIf.demand)+"%",
-    netM: baht(R.st.net), payTxt: R.payback==null?"ยังไม่คืนทุน":"เดือนที่ "+Math.ceil(R.payback),
-    inv: baht(R.invest), fix: baht(R.fixed), need: fmt(R.need)+" เครื่อง", util: pct(Math.min(R.util,9.99))
-  };
-  $$("[data-o]").forEach(el=>{ const k=el.dataset.o; if(k in o) el.textContent=o[k]; });
   const mt=$('[data-o="monthTable"]');
-  if(mt) mt.innerHTML = `<table><thead><tr><th>เดือน</th><th class="r">รายได้</th><th class="r">ค่าใช้จ่าย</th><th class="r">กำไร</th><th class="r">เงินสะสม</th><th class="r">ใช้เครื่อง</th></tr></thead><tbody>${
-    R.series.map(m=>`<tr><td>${m.i}</td><td class="r num">${baht(m.rev)}</td><td class="r num">${baht(m.rev-m.net)}</td><td class="r num">${baht(m.net)}</td><td class="r num" style="color:${m.cum<0?"var(--bad)":"var(--good)"}">${baht(m.cum)}</td><td class="r num">${pct(R.capacity?m.dmd/R.capacity:0)}${m.sold?" ⚠":""}</td></tr>`).join("")}</tbody></table>`;
+  if(mt) mt.innerHTML=`<table><thead><tr><th>เดือน</th><th class="r">รายได้</th><th class="r">ค่าใช้จ่าย</th><th class="r">กำไร</th><th class="r">เงินสะสม</th><th class="r">ขี่ส่ง</th></tr></thead><tbody>${
+    R.series.map(m=>`<tr><td>${m.i}</td><td class="r num">${baht(m.rev)}</td><td class="r num">${baht(m.rev-m.net)}</td><td class="r num">${baht(m.net)}</td><td class="r num" style="color:${m.cum<0?"var(--bad)":"var(--good)"}">${baht(m.cum)}</td><td class="r num">${fmt(m.trips)} เที่ยว</td></tr>`).join("")}</tbody></table>`;
   drawCharts(R);
   return R;
 }
 function baseOpts(extra={}){
-  const muted=cssv("--muted"), line=cssv("--line"), ink=cssv("--ink");
-  const font={family:"IBM Plex Sans Thai"};
-  return Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:450},
-    plugins:{legend:{display:false,labels:{color:ink,font,boxWidth:12}}},
-    scales:{x:{ticks:{color:muted,font},grid:{color:line}},y:{ticks:{color:muted,font},grid:{color:line}}}}, extra);
+  const muted=cssv("--muted"), line=cssv("--line"), ink=cssv("--ink"), font={family:"IBM Plex Sans Thai"};
+  return Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:450},plugins:{legend:{display:false,labels:{color:ink,font,boxWidth:12}}},
+    scales:{x:{ticks:{color:muted,font},grid:{color:line}},y:{ticks:{color:muted,font},grid:{color:line}}}},extra);
 }
 const kfmt=v=>Math.abs(v)>=1000?fmt(v/1000,0)+"k":fmt(v,0);
 function upsert(id,cfg){
   const el=document.getElementById(id); if(!el) return;
-  if(typeof Chart==="undefined"){ el.parentNode.innerHTML=`<p class="hint">โหลดกราฟไม่ได้ (ไม่มีอินเทอร์เน็ต) ตัวเลขยังใช้งานได้</p>`; return; }
-  if(charts[id] && charts[id].canvas===el){ charts[id].data=cfg.data; charts[id].options=cfg.options; charts[id].update(); return; }
-  if(charts[id]) charts[id].destroy();
-  charts[id]=new Chart(el,cfg);
+  if(typeof Chart==="undefined"){ el.parentNode.innerHTML=`<p class="hint">โหลดกราฟไม่ได้ (ไม่มีอินเทอร์เน็ต)</p>`; return; }
+  if(charts[id]&&charts[id].canvas===el){ charts[id].data=cfg.data; charts[id].options=cfg.options; charts[id].update(); return; }
+  if(charts[id]) charts[id].destroy(); charts[id]=new Chart(el,cfg);
 }
 function drawCharts(R){
   const ink=cssv("--ink"), c2=cssv("--c2"), c5=cssv("--c5"), good=cssv("--good"), bad=cssv("--bad"), muted=cssv("--muted");
@@ -1122,167 +1174,93 @@ function drawCharts(R){
     o.plugins.tooltip={callbacks:{label:c=>"เงินสะสม "+baht(c.parsed.y)}};
     upsert("chCum",{type:"bar",data:{labels:R.series.map(m=>m.i),datasets:[{data:R.series.map(m=>m.cum),backgroundColor:R.series.map(m=>m.cum<0?bad:good),borderRadius:2}]},options:o});
   }
-  if(page==="pricing"){
-    const clinic=clinicAvg();
-    const rows=R.progs.filter(x=>x.uses>0).map(x=>({n:x.p.name,v:x.unitPrice/x.uses,c:cssv(GROUPS[x.p.group].color)})).concat([{n:"คลินิก (เฉลี่ย)",v:clinic,c:c5}]).sort((a,b)=>a.v-b.v);
-    const o=baseOpts({indexAxis:"y"}); o.scales.x.ticks.callback=v=>fmt(v,0); o.plugins.tooltip={callbacks:{label:c=>baht(c.parsed.x)+" / ครั้ง"}};
-    upsert("chPerUse",{type:"bar",data:{labels:rows.map(r=>r.n),datasets:[{data:rows.map(r=>r.v),backgroundColor:rows.map(r=>r.c),borderRadius:3}]},options:o});
-  }
   if(page==="market"){
     const pts=S.refs.filter(r=>r.kind==="rent"&&n(r.price)>0&&refDays(r)).map(r=>({x:refDays(r),y:refPerDay(r),n:r.name}));
-    const ours=S.programs.filter(p=>p.on&&p.useType==="days"&&p.group!=="club").map(p=>{const d=p.per==="เดือน"?n(p.use):rentalLen(p); return {x:d,y:n(p.price)*n(S.whatIf.price)/100/Math.max(1,d),n:p.name};});
-    const o=baseOpts(); o.scales.x.type="logarithmic"; o.scales.x.title={display:true,text:"จำนวนวันที่เช่า",color:muted};
-    o.scales.x.ticks.callback=v=>[1,2,3,7,14,30].includes(v)?v:""; o.scales.y.title={display:true,text:"บาท / วัน",color:muted};
-    o.plugins.legend.display=true; o.plugins.tooltip={callbacks:{label:c=>`${c.raw.n}: ${baht(c.raw.y)}/วัน (${c.raw.x} วัน)`}};
+    const ours=S.packages.filter(p=>p.on).map(p=>{ const b=bookingOf(p,{}), per=p.kind==="weekly"?1:Math.max(.0001,b.occ), d=b.busyDays/per; const len=p.kind==="weekly"?(p.leave?spanDays(p.days||[]):1):Math.max(1,n(p.useDays)); return {x:len,y:n(p.price)*n(S.whatIf.price)/100/Math.max(.1,d),n:p.name}; });
+    const o=baseOpts(); o.scales.x.type="logarithmic"; o.scales.x.title={display:true,text:"จำนวนวันที่เช่าต่อครั้ง",color:muted}; o.scales.x.ticks.callback=v=>[1,2,3,7,14,30].includes(v)?v:"";
+    o.scales.y.title={display:true,text:"บาท / วัน",color:muted}; o.plugins.legend.display=true; o.plugins.tooltip={callbacks:{label:c=>`${c.raw.n}: ${baht(c.raw.y)}/วัน`}};
     upsert("chCurve",{type:"scatter",data:{datasets:[{label:"คู่แข่ง",data:pts,backgroundColor:c5,pointRadius:6},{label:"ของเรา",data:ours,backgroundColor:ink,pointRadius:7,pointStyle:"rectRot"}]},options:o});
     const ses=S.refs.filter(r=>r.kind==="session"&&n(r.price)>0).map(r=>({n:r.name+(n(r.qty)>1?" (แพ็ก)":""),v:refPer30(r),c:r.country==="ไทย"?c2:c5}));
-    const ourS=S.programs.filter(p=>p.on&&p.useType==="sessions").map(p=>({n:"ของเรา · "+p.name,v:n(p.price)*n(S.whatIf.price)/100/Math.max(1,n(p.use)),c:ink}));
+    const ourS=S.packages.filter(p=>p.on).map(p=>({n:"ของเรา · "+p.name,v:bookingOf(p,{}).perAthlete||0,c:ink})).filter(x=>x.v>0);
     const all=[...ses,...ourS].sort((a,b)=>b.v-a.v);
-    const o2=baseOpts({indexAxis:"y"}); o2.scales.x.ticks.callback=v=>fmt(v,0); o2.scales.y.ticks.autoSkip=false; o2.scales.y.ticks.font={size:11}; o2.plugins.tooltip={callbacks:{label:c=>baht(c.parsed.x)+" / 30 นาที"}};
+    const o2=baseOpts({indexAxis:"y"}); o2.scales.x.ticks.callback=v=>fmt(v,0); o2.scales.y.ticks.autoSkip=false; o2.scales.y.ticks.font={size:11}; o2.plugins.tooltip={callbacks:{label:c=>baht(c.parsed.x)}};
     upsert("chSes",{type:"bar",data:{labels:all.map(x=>x.n),datasets:[{data:all.map(x=>x.v),backgroundColor:all.map(x=>x.c),borderRadius:3}]},options:o2});
   }
 }
 function countUp(){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  $$("[data-count]").forEach(el=>{
-    const end=Number(el.dataset.count); if(!isFinite(end)) return;
-    const t0=performance.now(), d=650;
-    const tick=t=>{ const k=Math.min(1,(t-t0)/d), e=1-Math.pow(1-k,3); el.textContent=baht(end*e); if(k<1) requestAnimationFrame(tick); };
-    requestAnimationFrame(tick);
-  });
+  $$(".verdict .sentence b").forEach(el=>{ const m=el.textContent.match(/^฿([\d,]+)$/); if(!m) return; const end=Number(m[1].replace(/,/g,"")); const t0=performance.now();
+    const tick=t=>{ const k=Math.min(1,(t-t0)/650), e=1-Math.pow(1-k,3); el.textContent=baht(end*e); if(k<1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
 }
 
 /* ================= render ================= */
 function renderNav(){
-  $("#topnav").innerHTML = PAGES.map(p=>`<button data-go="${p.k}" ${p.k===page?'aria-current="page"':""}>${p.label}</button>`).join("");
-  const more = !PAGES.find(p=>p.k===page).bot;
-  $("#botnav").innerHTML = PAGES.filter(p=>p.bot).map(p=>`<button data-go="${p.k}" ${p.k===page?'aria-current="page"':""}>${ICON[p.icon]}<span>${p.label}</span></button>`).join("")
-    + `<button data-act="moreMenu" ${more?'aria-current="page"':""}>${ICON.more}<span>เพิ่มเติม</span></button>`;
+  $("#topnav").innerHTML=PAGES.map(p=>`<button data-go="${p.k}" ${p.k===page?'aria-current="page"':""}>${p.label}</button>`).join("");
+  const more=!PAGES.find(p=>p.k===page).bot;
+  $("#botnav").innerHTML=PAGES.filter(p=>p.bot).map(p=>`<button data-go="${p.k}" ${p.k===page?'aria-current="page"':""}>${ICON[p.icon]}<span>${p.label}</span></button>`).join("")+`<button data-act="moreMenu" ${more?'aria-current="page"':""}>${ICON.more}<span>เพิ่มเติม</span></button>`;
 }
 function render(animate){
   renderNav();
   const R=compute();
   Object.keys(charts).forEach(k=>{charts[k].destroy(); delete charts[k];});
-  const html = ({summary:pSummary,pricing:pPricing,sheet:pSheet,clubs:pClubs,market:pMarket,costs:pCosts,config:pConfig}[page]||pSummary)(R);
-  const app=$("#app"), sy=window.scrollY;
-  app.innerHTML=html;
+  const html=({summary:pSummary,packages:pPackages,clubs:pClubs,week:pWeek,sheet:pSheet,market:pMarket,costs:pCosts,config:pConfig}[page]||pSummary)(R);
+  const app=$("#app"), sy=window.scrollY; app.innerHTML=html;
   const v=$(".view",app);
-  if(animate && v){ $$(":scope > *",v).forEach((el,i)=>el.style.setProperty("--i",Math.min(i,8))); v.classList.add("enter"); }
+  if(animate&&v){ $$(":scope > *",v).forEach((el,i)=>el.style.setProperty("--i",Math.min(i,8))); v.classList.add("enter"); }
   refresh();
   if(animate){ countUp(); window.scrollTo(0,0); } else window.scrollTo(0,sy);
   const fi=$("#importFile"); if(fi) fi.addEventListener("change",importFile);
 }
 function go(k){
   if(!PAGES.some(p=>p.k===k)) k="summary";
-  if(k===page && $("#app").children.length){ window.scrollTo({top:0,behavior:"smooth"}); return; }
-  page=k;
-  try{ history.replaceState(null,"","#"+k); }catch(e){}
+  closeSheet(true);
+  if(k===page&&$("#app").children.length){ window.scrollTo({top:0,behavior:"smooth"}); return; }
+  page=k; try{ history.replaceState(null,"","#"+k); }catch(e){}
   const doit=()=>render(true);
-  if(document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(doit);
-  else doit();
+  if(document.startViewTransition&&!matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(doit); else doit();
 }
 
 /* ================= export ================= */
 const loaded={};
-function loadScript(src){
-  if(loaded[src]) return loaded[src];
-  return loaded[src]=new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>{delete loaded[src]; rej(new Error("load"));}; document.head.appendChild(s); });
+function loadScript(src){ if(loaded[src]) return loaded[src]; return loaded[src]=new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>{delete loaded[src]; rej(new Error("load"));}; document.head.appendChild(s); }); }
+async function saveFile(blob,name){
+  if(IN_CLAUDE){ try{ const d=await window.claude.use("downloads"); if(d){ await d.save({filename:name,data:blob}); toast("บันทึกไฟล์แล้ว"); return; } }catch(e){ if(e&&e.code==="declined") return; toast("บันทึกไฟล์ไม่ได้ในหน้านี้"); return; } }
+  const url=URL.createObjectURL(blob), a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); toast("บันทึก "+name+" แล้ว");
 }
-async function saveFile(blob, name){
-  if(IN_CLAUDE){
-    try{
-      const d=await window.claude.use("downloads");
-      if(d){ await d.save({filename:name,data:blob}); toast("บันทึกไฟล์แล้ว"); return; }
-    }catch(e){ if(e&&e.code==="declined") return; toast("บันทึกไฟล์ไม่ได้ในหน้านี้"); return; }
-  }
-  const url=URL.createObjectURL(blob), a=document.createElement("a");
-  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),4000); toast("บันทึก "+name+" แล้ว");
-}
-async function sheetCanvas(){
-  await loadScript(LIBS.h2c);
-  const el=$("#pl");
-  return window.html2canvas(el,{scale:2,backgroundColor:S.sheet.dark?"#0b0b0c":"#ffffff",useCORS:true,logging:false});
-}
+async function sheetCanvas(){ await loadScript(LIBS.h2c); return window.html2canvas($("#pl"),{scale:2,backgroundColor:S.sheet.dark?"#0b0b0c":"#ffffff",useCORS:true,logging:false}); }
 const stamp=()=>new Date().toISOString().slice(0,10);
 function tableRows(){
-  const rows=[["ประเภท","โปรแกรม","ราคา (บาท)","คิดต่อ","สัญญาขั้นต่ำ (เดือน)","ได้ใช้ (ครั้ง)","ตกครั้งละ (บาท)","ถูกกว่าคลินิก","รายละเอียด"]];
-  plData().forEach(({g,items})=>items.forEach(it=>rows.push([GROUPS[g].label,it.p.name,it.price,it.p.per,n(it.p.minTerm)||"",usesOf(it.p)||"",it.per!=null?Math.round(it.per):"",it.save!=null?Math.round(it.save*100)+"%":"",it.p.desc||""])));
+  const rows=[["รูปแบบ","แพ็กเกจ","ราคาต่อเครื่อง (บาท)","คิดต่อ","วันที่ใช้","เครื่อง","นักกีฬาตกคนละ/ครั้ง","ถูกกว่าคลินิก","รายละเอียด"]];
+  plData().forEach(({k,items})=>items.forEach(it=>rows.push([KINDS[k].label,it.p.name,it.price,KINDS[k].unit,schedText(it.p),n(it.p.units)||1,it.per!=null?Math.round(it.per):"",it.save!=null?Math.round(it.save*100)+"%":"",it.p.desc||""])));
   return rows;
 }
 async function exportAs(f){
   try{
     if(f==="png"){ toast("กำลังสร้างรูป…"); const c=await sheetCanvas(); c.toBlob(b=>saveFile(b,`Normatec-PriceList-${stamp()}.png`),"image/png"); }
-    else if(f==="share"){
-      toast("กำลังเตรียมรูป…"); const c=await sheetCanvas();
-      c.toBlob(async b=>{ const file=new File([b],`Normatec-PriceList-${stamp()}.png`,{type:"image/png"});
-        if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:"ใบราคา Normatec"}); }catch(e){} }
-        else saveFile(b,file.name); },"image/png");
-    }
-    else if(f==="pdf"){
-      toast("กำลังสร้าง PDF…"); const c=await sheetCanvas(); await loadScript(LIBS.pdf);
-      const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"pt",format:"a4"});
-      const W=doc.internal.pageSize.getWidth(), Hh=doc.internal.pageSize.getHeight(), m=24;
-      const w=W-m*2, h=c.height*w/c.width;
-      let y=0; const pageH=Hh-m*2;
-      while(y < h){
-        if(y>0) doc.addPage();
-        const sliceH=Math.min(pageH, h-y), sc=c.width/w;
-        const part=document.createElement("canvas"); part.width=c.width; part.height=Math.ceil(sliceH*sc);
-        part.getContext("2d").drawImage(c,0,Math.floor(y*sc),c.width,part.height,0,0,c.width,part.height);
-        doc.addImage(part.toDataURL("image/jpeg",.92),"JPEG",m,m,w,sliceH); y+=pageH;
-      }
-      saveFile(doc.output("blob"),`Normatec-PriceList-${stamp()}.pdf`);
-    }
-    else if(f==="csv"){
-      const csv=tableRows().map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\r\n");
-      saveFile(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}),`Normatec-PriceList-${stamp()}.csv`);
-    }
-    else if(f==="xlsx"||f==="planxlsx"){
-      toast("กำลังสร้าง Excel…"); await loadScript(LIBS.xlsx);
-      const X=window.XLSX, wb=X.utils.book_new(), R=compute();
+    else if(f==="share"){ toast("กำลังเตรียมรูป…"); const c=await sheetCanvas(); c.toBlob(async b=>{ const file=new File([b],`Normatec-PriceList-${stamp()}.png`,{type:"image/png"}); if(navigator.canShare&&navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:"ใบราคา Normatec"}); }catch(e){} } else saveFile(b,file.name); },"image/png"); }
+    else if(f==="pdf"){ toast("กำลังสร้าง PDF…"); const c=await sheetCanvas(); await loadScript(LIBS.pdf); const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"pt",format:"a4"});
+      const W=doc.internal.pageSize.getWidth(), Hh=doc.internal.pageSize.getHeight(), m=24, w=W-m*2, h=c.height*w/c.width, pageH=Hh-m*2; let y=0;
+      while(y<h){ if(y>0) doc.addPage(); const sliceH=Math.min(pageH,h-y), sc=c.width/w, part=document.createElement("canvas"); part.width=c.width; part.height=Math.ceil(sliceH*sc);
+        part.getContext("2d").drawImage(c,0,Math.floor(y*sc),c.width,part.height,0,0,c.width,part.height); doc.addImage(part.toDataURL("image/jpeg",.92),"JPEG",m,m,w,sliceH); y+=pageH; }
+      saveFile(doc.output("blob"),`Normatec-PriceList-${stamp()}.pdf`); }
+    else if(f==="csv"){ const csv=tableRows().map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\r\n"); saveFile(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}),`Normatec-PriceList-${stamp()}.csv`); }
+    else if(f==="xlsx"||f==="planxlsx"){ toast("กำลังสร้าง Excel…"); await loadScript(LIBS.xlsx); const X=window.XLSX, wb=X.utils.book_new(), R=compute();
       X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([[`ใบราคา Normatec · ราคา ณ ${todayTH()}`],[],...tableRows()]),"ใบราคา");
-      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["เดือน","รายได้","ค่าใช้จ่าย","กำไร","เงินสะสม"],...R.series.map(m=>[m.i,Math.round(m.rev),Math.round(m.rev-m.net),Math.round(m.net),Math.round(m.cum)])]),"แผนการเงิน");
-      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["สรุป",""],["ลงทุน",Math.round(R.invest)],["จำนวนเครื่อง",R.count],["รายได้/เดือน",Math.round(R.st.rev)],["กำไร/เดือน",Math.round(R.st.net)],["คืนทุน (เดือน)",R.payback==null?"ยังไม่คืนทุน":+R.payback.toFixed(1)]]),"สรุป");
-      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["ผู้ให้บริการ","รายการ","ประเภท","ประเทศ","ราคา","สกุลเงิน","จำนวน","หน่วย","บาท/วัน","บาท/30 นาที","แหล่งที่มา","หมายเหตุ"],...S.refs.map(r=>[r.name,r.item||"",REF_KINDS[r.kind]||r.kind,r.country,n(r.price),r.currency,n(r.qty),UNITS[r.unit]||r.unit,refPerDay(r)?Math.round(refPerDay(r)):"",refPer30(r)?Math.round(refPer30(r)):"",r.url||"",r.note||""])]),"ข้อมูลตลาด");
-      const buf=X.write(wb,{bookType:"xlsx",type:"array"});
-      saveFile(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),`Normatec-${f==="planxlsx"?"Plan":"PriceList"}-${stamp()}.xlsx`);
-    }
+      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["สโมสร","สถานะ","แพ็กเกจ","วัน / นัด","เครื่อง","ระยะ (กม.)","เริ่มเดือน","รายได้/เดือน","ขี่ส่ง/เดือน (เที่ยว)","ค่าส่ง+ทำความสะอาด"],...S.clubs.map(c=>{ const p=pkgById(c.packageId), b=p?bookingOf(p,c):null; return [c.name,(STATUS.find(s=>s.k===c.status)||{}).label,p?p.name:"",p&&p.kind==="weekly"?daysTxt(c.days):`${fmt(c.matches)} นัด`,c.units,c.km,c.start,b?Math.round(b.revenue):"",b?+b.trips.toFixed(1):"",b?Math.round(b.variable):""]; })]),"สโมสร");
+      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["เดือน","รายได้","ค่าใช้จ่าย","กำไร","เงินสะสม","ขี่ส่ง (เที่ยว)"],...R.series.map(m=>[m.i,Math.round(m.rev),Math.round(m.rev-m.net),Math.round(m.net),Math.round(m.cum),Math.round(m.trips)])]),"แผนการเงิน");
+      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["ผู้ให้บริการ","รายการ","ประเภท","ประเทศ","ราคา","สกุลเงิน","จำนวน","หน่วย","บาท/วัน","บาท/30 นาที","แหล่งที่มา"],...S.refs.map(r=>[r.name,r.item||"",REF_KINDS[r.kind]||r.kind,r.country,n(r.price),r.currency,n(r.qty),UNITS[r.unit]||r.unit,refPerDay(r)?Math.round(refPerDay(r)):"",refPer30(r)?Math.round(refPer30(r)):"",r.url||""])]),"ข้อมูลตลาด");
+      const buf=X.write(wb,{bookType:"xlsx",type:"array"}); saveFile(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),`Normatec-${f==="planxlsx"?"Plan":"PriceList"}-${stamp()}.xlsx`); }
     else if(f==="json"){ saveFile(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}),`normatec-backup-${stamp()}.json`); }
   }catch(e){ toast("ทำไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่"); }
 }
-function importFile(e){
-  const f=e.target.files&&e.target.files[0]; if(!f) return;
-  const rd=new FileReader(); rd.onload=()=>{ try{ const x=JSON.parse(rd.result); snapshotForUndo(); S=migrate(x); undoArmed=true; scheduleSave(); render(false); toast("นำเข้าข้อมูลแล้ว"); }catch(err){ toast("ไฟล์ไม่ถูกต้อง"); } };
-  rd.readAsText(f);
-}
-async function b64encode(str){
-  const bytes=new TextEncoder().encode(str);
-  let data=bytes;
-  if(window.CompressionStream){ data=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer()); }
-  let s=""; data.forEach(b=>s+=String.fromCharCode(b));
-  return (window.CompressionStream?"z":"p")+btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-}
-async function b64decode(t){
-  const mode=t[0], b=t.slice(1).replace(/-/g,"+").replace(/_/g,"/");
-  const bin=atob(b), arr=Uint8Array.from(bin,c=>c.charCodeAt(0));
-  if(mode==="z"){ return new TextDecoder().decode(await new Response(new Blob([arr]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); }
-  return new TextDecoder().decode(arr);
-}
-async function shareLink(){
-  const code=await b64encode(JSON.stringify(S));
-  const url=location.href.split("#")[0]+"#import="+code;
-  if(navigator.share){ try{ await navigator.share({title:"ข้อมูล Normatec Planner",url}); return; }catch(e){} }
-  const box=$("#linkBox"); box.hidden=false; box.value=url;
-  try{ await navigator.clipboard.writeText(url); toast("คัดลอกลิงก์แล้ว เปิดลิงก์นี้บนอีกเครื่อง"); }catch(e){ box.select(); toast("เลือกลิงก์ไว้แล้ว กดคัดลอก"); }
-}
+function importFile(e){ const f=e.target.files&&e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ snapshotForUndo(); S=migrate(JSON.parse(rd.result)); undoArmed=true; scheduleSave(); render(false); toast("นำเข้าข้อมูลแล้ว"); }catch(err){ toast("ไฟล์ไม่ถูกต้อง"); } }; rd.readAsText(f); }
+async function b64encode(str){ const bytes=new TextEncoder().encode(str); let data=bytes; if(window.CompressionStream) data=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer()); let s=""; data.forEach(b=>s+=String.fromCharCode(b)); return (window.CompressionStream?"z":"p")+btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+async function b64decode(t){ const mode=t[0], b=t.slice(1).replace(/-/g,"+").replace(/_/g,"/"), arr=Uint8Array.from(atob(b),c=>c.charCodeAt(0)); if(mode==="z") return new TextDecoder().decode(await new Response(new Blob([arr]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); return new TextDecoder().decode(arr); }
+async function shareLink(){ const url=location.href.split("#")[0]+"#import="+await b64encode(JSON.stringify(S)); if(navigator.share){ try{ await navigator.share({title:"ข้อมูล Normatec Planner",url}); return; }catch(e){} } const box=$("#linkBox"); box.hidden=false; box.value=url; try{ await navigator.clipboard.writeText(url); toast("คัดลอกลิงก์แล้ว"); }catch(e){ box.select(); toast("เลือกลิงก์ไว้แล้ว กดคัดลอก"); } }
 async function checkImportHash(){
   const h=location.hash; if(!h.startsWith("#import=")) return;
-  try{
-    const x=JSON.parse(await b64decode(h.slice(8)));
-    openSheet("นำเข้าข้อมูลจากลิงก์", `<p>ลิงก์นี้มีข้อมูลแผน Normatec (${(x.programs||[]).length} โปรแกรม · ${(x.clubs||[]).length} สโมสร · ${(x.refs||[]).length} แหล่งอ้างอิง) ต้องการแทนที่ข้อมูลในเครื่องนี้หรือไม่?</p>`,
-      `<button class="btn ghost sm" data-act="closeSheet">ไม่ใช่ตอนนี้</button><button class="btn sm" data-act="confirmImport">แทนที่ข้อมูล</button>`);
-    window.__pendingImport=x;
+  try{ const x=JSON.parse(await b64decode(h.slice(8))); window.__pendingImport=x;
+    openSheet("นำเข้าข้อมูลจากลิงก์",`<p>ลิงก์นี้มีข้อมูลแผน (${(x.packages||x.programs||[]).length} แพ็กเกจ · ${(x.clubs||[]).length} สโมสร) แทนที่ข้อมูลในเครื่องนี้หรือไม่?</p>`,`<button class="btn ghost sm" data-act="closeSheet">ไม่ใช่ตอนนี้</button><button class="btn sm" data-act="confirmImport">แทนที่ข้อมูล</button>`);
   }catch(e){ toast("ลิงก์ข้อมูลไม่สมบูรณ์"); }
   try{ history.replaceState(null,"","#"+page); }catch(e){}
 }
@@ -1290,78 +1268,65 @@ async function checkImportHash(){
 /* ================= events ================= */
 function applyInput(el){
   const k=el.dataset.k; if(!k) return false;
-  let v = el.dataset.t==="b" ? el.checked : el.dataset.t==="n" ? (el.value===""?0:Number(el.value)) : el.value;
-  if(el.dataset.t==="n" && !isFinite(v)) return false;
+  let v=el.dataset.t==="b"?el.checked:el.dataset.t==="n"?(el.value===""?0:Number(el.value)):el.value;
+  if(el.dataset.t==="n"&&!isFinite(v)) return false;
   setPath(S,k,v);
-  const mm=k.match(/^clubs\.(\d+)\.status$/); if(mm){ const s=STATUS.find(x=>x.k===v); if(s) S.clubs[+mm[1]].prob=s.prob; }
+  let m=k.match(/^clubs\.(\d+)\.status$/); if(m){ const s=STATUS.find(x=>x.k===v); if(s) S.clubs[+m[1]].prob=s.prob; }
+  m=k.match(/^clubs\.(\d+)\.packageId$/); if(m){ const c=S.clubs[+m[1]], p=pkgById(v); if(p){ if(p.kind==="weekly") c.days=[...(p.days||[])]; c.units=n(p.units)||1; } }
   return true;
 }
-document.addEventListener("click", async e=>{
+document.addEventListener("click", e=>{
   if(e.target.closest("[data-stop]")) return;
   const t=e.target.closest("[data-go],[data-act],[data-flt]"); if(!t) return;
-  if(t.dataset.go){ closeSheet(); go(t.dataset.go); return; }
+  if(t.dataset.go){ go(t.dataset.go); return; }
   if(t.dataset.flt){ flt[t.dataset.flt]=t.dataset.v; render(false); return; }
   const a=t.dataset.act, i=+t.dataset.i;
   switch(a){
     case "inc": case "dec": {
-      const box=t.closest(".stepper"), inp=$("input",box), k=box.dataset.k;
-      const cur=n(getPath(S,k)), stepA=box.dataset.step;
-      const step = stepA==="auto" ? priceStep(cur) : n(stepA)||1;
-      let v = a==="inc" ? cur+step : cur-step;
-      v = Math.max(n(box.dataset.min), Math.round(v*100)/100);
-      mutate(()=>setPath(S,k,v));
-      inp.value=v; inp.classList.remove("flash"); void inp.offsetWidth; inp.classList.add("flash");
-      if(k.startsWith("programs.")) softRerender();
-      break; }
-    case "setPrice": mutate(()=>{S.programs[i].price=n(t.dataset.v);},{render:true}); toast("ตั้งราคาแล้ว"); pulse(`[data-pid="${S.programs[i].id}"]`); break;
-    case "applyAll": {
-      const R=compute(), mode=t.dataset.mode;
-      mutate(()=>S.programs.forEach(p=>{ const sg=suggestFor(p,R); p.price = mode==="market"?sg.byMarket : mode==="cost"?sg.byCost : sg.value; }),{render:true});
-      toast("ปรับราคาทุกโปรแกรมแล้ว · กดย้อนกลับได้"); break; }
+      const box=t.closest(".stepper"), inp=$("input",box), k=box.dataset.k, cur=n(getPath(S,k));
+      const step=box.dataset.step==="auto"?priceStep(cur):n(box.dataset.step)||1;
+      let v=a==="inc"?cur+step:cur-step; v=Math.max(n(box.dataset.min),Math.round(v*100)/100); if(box.dataset.max!=null) v=Math.min(n(box.dataset.max),v);
+      mutate(()=>setPath(S,k,v)); inp.value=v; inp.classList.remove("flash"); void inp.offsetWidth; inp.classList.add("flash");
+      if($(".sheet")) softReopen(); else softRerender(); break; }
+    case "toggleDay": {
+      const k=t.dataset.k, d=n(t.dataset.d);
+      mutate(()=>{ const arr=getPath(S,k)||[]; const j=arr.indexOf(d); if(j>=0) arr.splice(j,1); else arr.push(d); setPath(S,k,arr); });
+      if($(".sheet")) reopenSheet(); else render(false); break; }
+    case "clubDaysFromPkg": { const c=S.clubs[i], p=pkgById(c.packageId); mutate(()=>c.days=[...(p.days||[])]); reopenSheet(); break; }
+    case "setPrice": mutate(()=>S.packages[i].price=n(t.dataset.v),{render:true}); toast("ตั้งราคาแล้ว"); pulse(`[data-pid="${S.packages[i].id}"]`); break;
+    case "applyAll": { const R=compute(), mode=t.dataset.mode; mutate(()=>S.packages.forEach(p=>{ const sg=suggestFor(p,R); p.price=mode==="cost"?sg.byCost:sg.value; }),{render:true}); toast("ปรับราคาทุกแพ็กเกจแล้ว · กดย้อนกลับได้"); break; }
     case "showBasis": basisSheet(i); break;
     case "pricingRules": rulesSheet(); break;
-    case "editProgram": editProgram(i); break;
-    case "addProgram": addProgramSheet(); break;
-    case "addProgramType": {
-      const g=t.dataset.g;
-      const tpl={rent:{name:"เช่าใหม่ · 2 วัน",price:790,per:"ครั้ง",qty:2,useType:"days",use:2.5,uses:3,handovers:1,revShare:0},
-        sub:{name:"สมาชิกใหม่",price:2990,per:"เดือน",qty:1,useType:"days",use:8,uses:8,handovers:2,revShare:0},
-        club:{name:"แพ็กเกจสโมสรใหม่",price:990,per:"เดือน",qty:10,useType:"sessions",use:4,uses:4,handovers:0,revShare:15},
-        session:{name:"รอบบริการใหม่",price:300,per:"ครั้ง",qty:20,useType:"sessions",use:1,uses:1,handovers:0,revShare:15}}[g];
-      mutate(()=>S.programs.push(Object.assign({id:uid("p"),on:true,group:g,minTerm:0,desc:""},tpl)));
-      flt.progGroup="all"; closeSheet(); setTimeout(()=>{ if(page!=="pricing") page="pricing"; render(false); editProgram(S.programs.length-1); },280); break; }
-    case "dupProgram": mutate(()=>{ const c=clone(S.programs[i]); c.id=uid("p"); c.name+=" (สำเนา)"; S.programs.splice(i+1,0,c); }); closeSheet(); break;
-    case "delProgram": mutate(()=>S.programs.splice(i,1)); closeSheet(); toast("ลบแล้ว · กดย้อนกลับได้"); break;
+    case "editPackage": editPackage(i); break;
+    case "addPackage": addPackageSheet(); break;
+    case "addPackageKind": {
+      const k=t.dataset.k, base={weekly:{name:"แพ็กเกจประจำใหม่",price:2990,days:[2,4],leave:false,athletes:8},match:{name:"หลังแข่งใหม่",price:690,useDays:1,athletes:11},event:{name:"ทัวร์นาเมนต์ใหม่",price:1690,useDays:3,athletes:10},personal:{name:"เช่าบุคคลใหม่",price:490,useDays:1,athletes:1,qty:2}}[k];
+      mutate(()=>S.packages.push(Object.assign({id:uid("k"),on:true,kind:k,units:1,desc:""},base))); closeSheet(true); if(page!=="packages") page="packages"; render(false); setTimeout(()=>editPackage(S.packages.length-1),50); break; }
+    case "dupPackage": mutate(()=>{ const c=clone(S.packages[i]); c.id=uid("k"); c.name+=" (สำเนา)"; S.packages.splice(i+1,0,c); }); closeSheet(); break;
+    case "delPackage": mutate(()=>S.packages.splice(i,1)); closeSheet(); toast("ลบแล้ว · กดย้อนกลับได้"); break;
     case "delItem": mutate(()=>S[t.dataset.list].splice(i,1)); closeSheet(); toast("ลบแล้ว · กดย้อนกลับได้"); break;
     case "del": mutate(()=>S[t.dataset.list].splice(i,1),{render:true}); break;
     case "addRow": mutate(()=>S[t.dataset.list].push({name:"รายการใหม่",amount:0}),{render:true}); break;
     case "editClub": editClub(i); break;
-    case "nextStatus": {
-      e.stopPropagation();
-      const order=["target","contact","trial","won"]; const c=S.clubs[i]; const k=order[(order.indexOf(c.status)+1)%order.length]||"target";
-      mutate(()=>{ c.status=k; c.prob=STATUS.find(s=>s.k===k).prob; },{render:true}); toast(`${c.name}: ${STATUS.find(s=>s.k===k).label}`); break; }
-    case "addClub": {
-      mutate(()=>S.clubs.unshift({id:uid("c"),name:"สโมสรใหม่",type:"วิ่ง",area:"",status:"target",prob:10,members:0,seats:10,programId:(S.programs.find(p=>p.group==="club")||S.programs[0]||{}).id||"",contact:"",note:"",url:""}),{render:true});
-      flt.clubStatus="all"; editClub(0); break; }
-    case "addRef": {
-      mutate(()=>S.refs.unshift({id:uid("r"),name:"แหล่งใหม่",item:"",kind:"rent",country:"ไทย",price:0,currency:"THB",qty:1,unit:"day",minutes:30,inAvg:false,bench:true,url:"",note:"",date:stamp()}),{render:true});
-      flt.refScope="all"; flt.refKind="all"; editRef(0); break; }
+    case "nextStatus": { e.stopPropagation(); const order=["target","contact","trial","won"], c=S.clubs[i], k=order[(order.indexOf(c.status)+1)%order.length]||"target"; mutate(()=>{c.status=k; c.prob=STATUS.find(s=>s.k===k).prob;},{render:true}); toast(`${c.name}: ${STATUS.find(s=>s.k===k).label}`); break; }
+    case "addClub": { mutate(()=>S.clubs.unshift(normClub({id:uid("c"),name:"สโมสรใหม่",type:"ฟุตบอล",group:flt.clubGroup==="all"?"จุฬาฯ":flt.clubGroup,packageId:"k1",days:[...((pkgById("k1")||{}).days||[1,3,5])],km:2})),{render:true}); flt.clubStatus="all"; editClub(0); break; }
+    case "addRef": { mutate(()=>S.refs.unshift({id:uid("r"),name:"แหล่งใหม่",item:"",kind:"rent",country:"ไทย",price:0,currency:"THB",qty:1,unit:"day",minutes:30,inAvg:false,bench:true,url:"",note:"",date:stamp()}),{render:true}); flt.refScope="all"; flt.refKind="all"; editRef(0); break; }
     case "editRef": editRef(i); break;
-    case "goMarket": closeSheet(); go("market"); break;
     case "setLocal": mutate(()=>S.market.localFactor=n(t.dataset.v),{render:true}); break;
+    case "setMode": mutate(()=>S.ops.mode=t.dataset.v,{render:true}); break;
+    case "setScope": mutate(()=>S.ops.scope=t.dataset.v,{render:true}); break;
     case "setMachinePrice": mutate(()=>S.machine.price=n(t.dataset.v),{render:true}); break;
     case "machines": mutate(()=>S.machine.count=Math.max(1,n(S.machine.count)+n(t.dataset.d)),{render:true}); toast(`ตอนนี้ ${S.machine.count} เครื่อง`); break;
     case "setMachines": mutate(()=>S.machine.count=n(t.dataset.v),{render:true}); break;
-    case "resetWhatIf": mutate(()=>S.whatIf={price:100,demand:100},{render:true}); break;
-    case "sheetOpt": { const k=t.dataset.k, v=t.dataset.v; mutate(()=>S.sheet[k]= v==="true"?true: v==="false"?false: v,{render:true}); break; }
+    case "sheetOpt": { const k=t.dataset.k, v=t.dataset.v; mutate(()=>S.sheet[k]=v==="true"?true:v==="false"?false:v,{render:true}); break; }
     case "sheetToggle": { const id=t.dataset.id; mutate(()=>{ const h=S.sheet.hidden||(S.sheet.hidden=[]); const j=h.indexOf(id); j>=0?h.splice(j,1):h.push(id); },{render:true}); break; }
     case "sheetText": sheetTextSheet(); break;
     case "exp": exportAs(t.dataset.f); break;
     case "print": window.print(); break;
-    case "moreMenu": openSheet("เพิ่มเติม", `<div class="tpl">${PAGES.filter(p=>!p.bot).map(p=>`<button data-go="${p.k}"><b>${p.label}</b><span class="hint">${{market:"ราคาคู่แข่งและแหล่งอ้างอิง",costs:"ราคาเครื่อง ค่าใช้จ่าย ตารางรายเดือน",config:"ติดตั้งแอป ย้ายข้อมูล อัตราแลกเปลี่ยน"}[p.k]}</span></button>`).join("")}</div>`); break;
+    case "moreMenu": openSheet("เพิ่มเติม",`<div class="tpl">${PAGES.filter(p=>!p.bot).map(p=>`<button data-go="${p.k}"><b>${p.label}</b><span class="hint">${{sheet:"ใบเสนอราคาให้ทีม บันทึกเป็นรูป / PDF",market:"ราคาคู่แข่งและแหล่งอ้างอิง",costs:"เครื่อง มอเตอร์ไซค์ ค่าใช้จ่าย",config:"ติดตั้งแอป ย้ายข้อมูล"}[p.k]}</span></button>`).join("")}</div>`); break;
     case "closeSheet": closeSheet(); break;
     case "shareLink": shareLink(); break;
-    case "confirmImport": snapshotForUndo(); S=migrate(window.__pendingImport); undoArmed=true; scheduleSave(); closeSheet(); render(false); toast("นำเข้าข้อมูลแล้ว"); break;
+    case "confirmImport": snapshotForUndo(); S=migrate(window.__pendingImport); undoArmed=true; scheduleSave(); closeSheet(true); render(false); toast("นำเข้าข้อมูลแล้ว"); break;
     case "install": if(window.__bip){ window.__bip.prompt(); window.__bip=null; t.hidden=true; } break;
     case "askReset": $("#resetConfirm").hidden=false; break;
     case "cancelReset": $("#resetConfirm").hidden=true; break;
@@ -1370,34 +1335,33 @@ document.addEventListener("click", async e=>{
 });
 function pulse(sel){ setTimeout(()=>{ const el=$(sel); if(el){ el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); } },30); }
 let softT=null;
-function softRerender(){ clearTimeout(softT); softT=setTimeout(()=>{ if(!document.activeElement || !document.activeElement.closest || !document.activeElement.closest(".stepper input")) render(false); },650); }
+function softRerender(){ clearTimeout(softT); softT=setTimeout(()=>{ const a=document.activeElement; if(!(a&&a.closest&&a.closest(".stepper input"))) render(false); },650); }
+function softReopen(){ clearTimeout(softT); softT=setTimeout(()=>{ const a=document.activeElement; if(!(a&&a.closest&&a.closest(".stepper input"))) reopenSheet(); },500); }
 document.addEventListener("keydown", e=>{
-  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="z" && !e.shiftKey && !(e.target.matches&&e.target.matches("input[type=text],textarea"))){ e.preventDefault(); undo(); }
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="z"&&!e.shiftKey&&!(e.target.matches&&e.target.matches("input[type=text],textarea"))){ e.preventDefault(); undo(); }
   if(e.key==="Escape") closeSheet();
-  if(e.key==="Enter" && e.target.matches && e.target.matches('[role="button"]')) e.target.click();
+  if(e.key==="Enter"&&e.target.matches&&e.target.matches('[role="button"]')) e.target.click();
 });
 document.addEventListener("input", e=>{
   const el=e.target; if(!el.dataset||!el.dataset.k||el.tagName==="SELECT"||el.type==="checkbox"||el.type==="file") return;
-  snapshotForUndo();
-  if(applyInput(el)){ rearmUndo(); scheduleSave(); refresh(); if(el.type==="range") updateSliderText(); }
+  snapshotForUndo(); if(applyInput(el)){ rearmUndo(); scheduleSave(); refresh(); }
 });
-function updateSliderText(){ /* text outputs are refreshed by refresh() */ }
 document.addEventListener("change", e=>{
   const el=e.target; if(!el.dataset||!el.dataset.k) return;
-  if(el.tagName==="SELECT"||el.type==="checkbox"){ snapshotForUndo(); if(applyInput(el)){ rearmUndo(); scheduleSave(); if(el.dataset.rr && $(".sheet")){ const title=$(".sheet-head h3").textContent; const m=el.dataset.k.match(/^(\w+)\.(\d+)\./); if(m){ const fn={programs:editProgram,clubs:editClub,refs:editRef}[m[1]]; if(fn){ $("#layer").innerHTML=""; fn(+m[2]); $(".sheet").classList.add("show"); $(".scrim").classList.add("show"); } } } else if(!$(".sheet")) render(false); else refresh(); } }
-  else if(el.dataset.t==="n" && el.closest(".prog")) render(false);
+  if(el.tagName==="SELECT"||el.type==="checkbox"){ snapshotForUndo(); if(applyInput(el)){ rearmUndo(); scheduleSave(); if($(".sheet")){ if(el.dataset.rr) reopenSheet(); } else render(false); } }
+  else if(el.dataset.t==="n"){ if($(".sheet")) reopenSheet(); else render(false); }
 });
 $("#undoBtn").addEventListener("click", undo);
-window.addEventListener("hashchange", ()=>{ const h=location.hash.slice(1); if(h.startsWith("import=")) checkImportHash(); else if(h && h!==page) go(h); });
+window.addEventListener("hashchange", ()=>{ const h=location.hash.slice(1); if(h.startsWith("import=")) checkImportHash(); else if(h&&h!==page) go(h); });
 try{ matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>render(false)); }catch(e){}
 new MutationObserver(()=>render(false)).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
-function isStandalone(){ return matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true; }
+function isStandalone(){ return matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true; }
 window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); window.__bip=e; const b=$("#installBtn"); if(b) b.hidden=false; });
 
 /* ================= boot ================= */
 if(isStandalone()) document.documentElement.classList.add("standalone");
 const h0=location.hash.slice(1);
-page = PAGES.some(p=>p.k===h0) ? h0 : "summary";
+page=PAGES.some(p=>p.k===h0)?h0:"summary";
 render(true);
 connect();
 checkImportHash();
