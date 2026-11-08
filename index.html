@@ -1,0 +1,1413 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{--sat:env(safe-area-inset-top,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>Normatec Rental Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="วางแผนธุรกิจให้เช่าเครื่อง Normatec: ตั้งราคา ใบราคา ลูกค้า ต้นทุน และคืนทุน">
+<meta name="theme-color" content="#0b0b0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Normatec">
+<meta name="application-name" content="Normatec">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: Hyperice-style black header band, desktop top tabs / phone bottom tab bar, single-column cards. Monochrome CI with one blue data accent. */
+:root{
+  --bg:#ffffff; --surface:#f4f4f2; --surface-2:#e9e9e6; --ink:#0b0b0c; --muted:#5f6267; --line:#e2e2df;
+  --bar:#0b0b0c; --bar-ink:#ffffff; --btn:#0b0b0c; --btn-ink:#ffffff; --sheet:#ffffff; --scrim:rgba(0,0,0,.45);
+  --c1:#0b0b0c; --c2:#3a6ff7; --c3:#17907d; --c4:#d99410; --c5:#a3a8ad;
+  --good:#16834a; --warn:#b26a00; --bad:#c62828; --good-bg:#e5f3ea; --warn-bg:#fcf0dc; --bad-bg:#fbe6e6;
+  --display:"Kanit","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans Thai","Helvetica Neue",Arial,sans-serif;
+  --r:6px; --pill:999px; --ease:cubic-bezier(.2,.8,.2,1);
+  --navh:64px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b0b0c; --surface:#161618; --surface-2:#232326; --ink:#f3f3f1; --muted:#a6a9ae; --line:#2c2c30;
+  --bar:#000000; --bar-ink:#ffffff; --btn:#f3f3f1; --btn-ink:#0b0b0c; --sheet:#161618; --scrim:rgba(0,0,0,.6);
+  --c1:#f3f3f1; --c2:#7097ff; --c3:#3cc3ac; --c4:#f2b940; --c5:#6f7479;
+  --good:#4cc47f; --warn:#f0a63a; --bad:#ff6b6b; --good-bg:#11301e; --warn-bg:#33240d; --bad-bg:#3a1515;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b0b0c; --surface:#161618; --surface-2:#232326; --ink:#f3f3f1; --muted:#a6a9ae; --line:#2c2c30;
+  --bar:#000000; --bar-ink:#ffffff; --btn:#f3f3f1; --btn-ink:#0b0b0c; --sheet:#161618; --scrim:rgba(0,0,0,.6);
+  --c1:#f3f3f1; --c2:#7097ff; --c3:#3cc3ac; --c4:#f2b940; --c5:#6f7479;
+  --good:#4cc47f; --warn:#f0a63a; --bad:#ff6b6b; --good-bg:#11301e; --warn-bg:#33240d; --bad-bg:#3a1515;
+  color-scheme:dark}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bar)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;text-wrap:balance;margin:0}
+a{color:var(--c2)}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+
+/* header */
+.topbar{background:var(--bar);color:var(--bar-ink);position:sticky;top:0;z-index:30;padding-top:var(--sat,0px)}
+.topbar .wrap{display:flex;align-items:center;gap:12px;min-height:56px}
+.brand{font-family:var(--display);font-weight:700;letter-spacing:.22em;text-transform:uppercase;font-size:15px;display:flex;align-items:center;gap:10px;white-space:nowrap}
+.brand-mark{display:grid;gap:3px;width:18px}
+.brand-mark i{display:block;height:4px;border-radius:4px;background:#fff}
+.brand-mark i:nth-child(2){width:84%;margin:0 auto}.brand-mark i:nth-child(3){width:68%;margin:0 auto}
+.topnav{display:flex;gap:2px;margin-left:12px;overflow-x:auto;scrollbar-width:none}
+.topnav::-webkit-scrollbar{display:none}
+.topnav button{background:none;border:0;color:rgba(255,255,255,.62);font-family:var(--display);font-size:13.5px;letter-spacing:.08em;text-transform:uppercase;padding:18px 10px 16px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.topnav button:hover{color:#fff}
+.topnav button[aria-current="page"]{color:#fff;border-bottom-color:#fff}
+.top-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.hbtn{background:transparent;border:1px solid rgba(255,255,255,.28);color:#fff;border-radius:var(--pill);padding:6px 12px;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.hbtn:disabled{opacity:.35;cursor:default}
+.hbtn svg{width:15px;height:15px}
+.save-dot{width:8px;height:8px;border-radius:50%;background:#4cc47f;display:inline-block}
+.save-dot[data-s="saving"]{background:#f0a63a}.save-dot[data-s="err"]{background:#ff6b6b}.save-dot[data-s="local"]{background:#9aa0a6}
+
+/* bottom nav (phones) */
+.botnav{display:none}
+@media (max-width:760px){
+  .topnav{display:none}
+  .botnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+  .botnav button{background:none;border:0;display:grid;justify-items:center;gap:2px;padding:8px 2px 6px;font-size:11px;color:var(--muted);cursor:pointer;min-height:var(--navh)}
+  .botnav svg{width:22px;height:22px}
+  .botnav button[aria-current="page"]{color:var(--ink)}
+  .botnav button[aria-current="page"] svg{transform:translateY(-1px)}
+  main{padding-bottom:calc(var(--navh) + env(safe-area-inset-bottom,0px) + 24px)!important}
+  .hide-sm{display:none!important}
+}
+
+main{padding-block:24px 64px}
+.view{display:grid;gap:22px}
+.eyebrow{font-family:var(--display);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.page-title{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.page-title h1{font-size:clamp(26px,5vw,40px);text-transform:uppercase;line-height:1.05;margin-top:4px}
+.lead{color:var(--muted);max-width:62ch;margin:6px 0 0;font-size:14.5px}
+
+/* motion */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes flash{0%{background:var(--surface-2)}100%{background:transparent}}
+.view.enter > *{animation:rise .42s var(--ease) both;animation-delay:calc(var(--i,0) * 45ms)}
+.pop{animation:pop .28s var(--ease)}
+::view-transition-old(main-view){animation:vt-out .16s ease-in both}
+::view-transition-new(main-view){animation:vt-in .32s var(--ease) both}
+@keyframes vt-out{to{opacity:0;transform:translateY(-6px)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(10px)}}
+#app{view-transition-name:main-view}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* buttons */
+.btn{appearance:none;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);font-family:var(--display);font-weight:500;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:11px 18px;border-radius:var(--pill);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s var(--ease),opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.btn.sm{padding:7px 13px;font-size:12px}
+.btn.block{width:100%}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--line)}
+.btn svg{width:16px;height:16px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{appearance:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:var(--pill);padding:7px 13px;font-size:13px;cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s,transform .12s}
+.chip:active{transform:scale(.96)}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.soft{background:var(--surface);border-color:transparent}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.scroll-x{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.scroll-x::-webkit-scrollbar{display:none}
+
+/* cards */
+.card{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:14px;align-content:start;min-width:0}
+.card.flat{background:var(--surface);border-color:transparent}
+.card h3{font-size:16px;text-transform:uppercase;letter-spacing:.05em}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+
+/* summary */
+.verdict{background:var(--bar);color:var(--bar-ink);border-radius:var(--r);padding:24px;display:grid;gap:14px}
+.verdict .sentence{font-family:var(--display);font-size:clamp(20px,3.4vw,30px);line-height:1.3;font-weight:500}
+.verdict .sentence b{font-weight:700}
+.verdict .light{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:5px 12px;border-radius:var(--pill);background:rgba(255,255,255,.1);width:max-content}
+.verdict .light i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.big3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.bigstat{background:var(--surface);border-radius:var(--r);padding:16px;display:grid;gap:2px;min-width:0}
+.bigstat .l{font-size:13px;color:var(--muted)}
+.bigstat .v{font-family:var(--display);font-size:clamp(22px,4vw,34px);font-weight:600;line-height:1.15}
+.bigstat .s{font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){.big3{grid-template-columns:1fr}.bigstat{grid-template-columns:1fr auto;align-items:baseline}.bigstat .s{grid-column:1/-1}}
+.hbar{display:grid;gap:10px}
+.hbar-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.hbar-row .t{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar-row .v{font-size:14px;font-weight:600}
+.hbar-track{grid-column:1/-1;height:8px;background:var(--surface-2);border-radius:8px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:8px;transition:width .5s var(--ease)}
+.todo{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.todo li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:12px 14px;background:var(--surface);border-radius:var(--r);font-size:14px}
+.todo .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700}
+.ic.good{background:var(--good-bg);color:var(--good)}.ic.warn{background:var(--warn-bg);color:var(--warn)}.ic.bad{background:var(--bad-bg);color:var(--bad)}.ic.info{background:var(--surface-2);color:var(--ink)}
+.todo .act{margin-top:6px}
+
+/* sliders */
+.slider{display:grid;gap:6px}
+.slider .top{display:flex;justify-content:space-between;font-size:14px}
+input[type=range]{width:100%;accent-color:var(--ink);height:28px}
+
+/* pricing studio */
+.prog{border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;background:var(--bg);transition:opacity .2s}
+.prog.off{opacity:.5}
+.prog-head{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.prog-name{font-family:var(--display);font-size:18px;font-weight:600;line-height:1.25;min-width:0}
+.prog-desc{font-size:13px;color:var(--muted);margin-top:2px}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;border-radius:var(--pill);padding:3px 10px;background:var(--surface-2);color:var(--ink);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.tag.good{background:var(--good-bg);color:var(--good)}.tag.warn{background:var(--warn-bg);color:var(--warn)}.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.stepper{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;border:1px solid var(--line);border-radius:var(--pill);overflow:hidden;height:48px;background:var(--bg)}
+.stepper button{height:100%;border:0;background:transparent;font-size:22px;cursor:pointer;color:var(--ink)}
+.stepper button:active{background:var(--surface)}
+.stepper input{border:0;background:transparent;text-align:center;font-family:var(--display);font-size:20px;font-weight:600;width:100%;min-width:0;color:var(--ink);padding:0;-moz-appearance:textfield}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper.sm{height:40px;grid-template-columns:38px minmax(0,1fr) 38px}
+.stepper.sm input{font-size:16px}
+.field-lab{font-size:12.5px;color:var(--muted);margin-bottom:4px;display:block}
+.prog-controls{display:grid;grid-template-columns:1.3fr 1fr;gap:12px}
+@media (max-width:420px){.prog-controls{grid-template-columns:1fr}}
+.meter{position:relative;height:38px;margin-top:4px}
+.meter .rail{position:absolute;left:0;right:0;top:14px;height:8px;border-radius:8px;background:linear-gradient(90deg,var(--bad-bg) 0%,var(--bad-bg) var(--floor),var(--good-bg) var(--floor),var(--good-bg) var(--mkt),var(--warn-bg) var(--mkt),var(--warn-bg) 100%)}
+.meter .mk{position:absolute;top:6px;width:2px;height:24px;background:var(--muted);transform:translateX(-1px)}
+.meter .mk span{position:absolute;top:26px;left:50%;transform:translateX(-50%);font-size:10.5px;color:var(--muted);white-space:nowrap}
+.meter .me{position:absolute;top:8px;width:20px;height:20px;border-radius:50%;background:var(--ink);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--ink);transform:translateX(-10px);transition:left .35s var(--ease)}
+.facts-row{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);margin-top:10px}
+.facts-row b{color:var(--ink);font-weight:600}
+.result-row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--line);font-size:14px}
+.result-row b{font-family:var(--display);font-weight:600;font-size:17px}
+.flash{animation:flash .6s ease-out}
+
+/* lists */
+.rows{display:grid;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:center;background:var(--bg);cursor:pointer;transition:background .15s}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--surface)}
+.row .t{font-weight:600;font-size:14.5px;min-width:0;overflow-wrap:anywhere}
+.row .s{font-size:12.5px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.row .r{text-align:right;font-family:var(--display);font-weight:600;font-size:16px;white-space:nowrap}
+.row .rs{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+.seg{display:flex;height:14px;border-radius:14px;overflow:hidden;background:var(--surface-2)}
+.seg span{display:block;height:100%;transition:width .5s var(--ease)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+/* forms in sheets */
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fields .wide{grid-column:1/-1}
+.f{display:grid;gap:4px;min-width:0}
+.f label{font-size:12.5px;color:var(--muted)}
+.f .help{font-size:11.5px;color:var(--muted)}
+input[type=text],input[type=url],input[type=number].plain,select,textarea{width:100%;min-width:0;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:10px 11px;font:inherit;font-size:16px}
+textarea{min-height:80px;font-size:13px}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--ink)}
+
+/* sheet (modal) */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:50;opacity:0;transition:opacity .25s}
+.scrim.show{opacity:1}
+.sheet{position:fixed;z-index:51;left:50%;bottom:0;width:min(640px,100%);max-height:calc(100% - env(safe-area-inset-top,0px) - 24px);background:var(--sheet);border-radius:14px 14px 0 0;
+  transform:translate(-50%,100%);transition:transform .34s var(--ease);display:grid;grid-template-rows:auto minmax(0,1fr) auto;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+.sheet.show{transform:translate(-50%,0)}
+@media (min-width:761px){.sheet{bottom:auto;top:50%;border-radius:14px;transform:translate(-50%,-46%) scale(.98);opacity:0;transition:transform .3s var(--ease),opacity .2s}.sheet.show{transform:translate(-50%,-50%);opacity:1}}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.sheet-head h3{font-size:16px;text-transform:uppercase;letter-spacing:.05em}
+.sheet-body{overflow:auto;padding:18px;display:grid;gap:16px;align-content:start}
+.sheet-foot{padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.xbtn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:18px;line-height:1}
+.tpl{display:grid;gap:10px}
+.tpl button{text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:var(--r);padding:14px;cursor:pointer;display:grid;gap:2px}
+.tpl button:hover{border-color:var(--ink)}
+.tpl b{font-family:var(--display);font-size:16px}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(var(--navh) + env(safe-area-inset-bottom,0px) + 16px);transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:var(--pill);font-size:14px;z-index:60;opacity:0;transition:all .3s var(--ease);pointer-events:none;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (min-width:761px){.toast{bottom:24px}}
+
+/* price list sheet (customer facing) */
+.pl-wrap{overflow-x:auto;padding:4px}
+.pl{width:760px;margin:0 auto;background:#ffffff;color:#0b0b0c;font-family:var(--body);border:1px solid #e2e2df}
+.pl.story{width:540px}
+.pl.dark{background:#0b0b0c;color:#f3f3f1;border-color:#2c2c30}
+.pl-head{background:#0b0b0c;color:#fff;padding:34px 36px 28px;display:grid;gap:10px}
+.pl.dark .pl-head{background:#000;border-bottom:1px solid #2c2c30}
+.pl-brand{display:flex;align-items:center;gap:12px;font-family:var(--display);font-weight:700;letter-spacing:.24em;font-size:14px;text-transform:uppercase}
+.pl-title{font-family:var(--display);font-size:40px;font-weight:700;text-transform:uppercase;line-height:1.02}
+.pl-sub{font-size:14px;opacity:.75}
+.pl-date{font-size:12px;opacity:.6;letter-spacing:.06em}
+.pl-body{padding:26px 36px 8px;display:grid;gap:26px}
+.pl-group h4{font-family:var(--display);font-size:13px;letter-spacing:.2em;text-transform:uppercase;margin:0 0 6px;padding-bottom:8px;border-bottom:2px solid currentColor;display:flex;justify-content:space-between}
+.pl-group h4 span{font-family:var(--body);letter-spacing:0;text-transform:none;font-weight:400;opacity:.6;font-size:12px}
+.pl-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 16px;padding:12px 0;border-bottom:1px solid rgba(127,127,127,.25)}
+.pl-item:last-child{border-bottom:0}
+.pl-item .n{font-family:var(--display);font-weight:600;font-size:18px}
+.pl-item .d{font-size:13px;opacity:.7;grid-column:1}
+.pl-item .p{font-family:var(--display);font-weight:600;font-size:24px;text-align:right;white-space:nowrap;grid-row:1/3;grid-column:2;align-self:center}
+.pl-item .p small{font-family:var(--body);font-size:12px;font-weight:400;opacity:.65;display:block;text-align:right}
+.pl-item .save{grid-column:1;font-size:12px;margin-top:2px}
+.pl-item .save b{background:#0b0b0c;color:#fff;border-radius:999px;padding:1px 8px;font-weight:500}
+.pl.dark .pl-item .save b{background:#f3f3f1;color:#0b0b0c}
+.pl-cond{padding:8px 36px 22px;font-size:12px;opacity:.75;display:grid;gap:4px}
+.pl-cond b{font-family:var(--display);letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+.pl-foot{background:#0b0b0c;color:#fff;padding:18px 36px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px}
+.pl.dark .pl-foot{background:#000;border-top:1px solid #2c2c30}
+.pl.story .pl-title{font-size:34px}
+.pl.story .pl-head,.pl.story .pl-body,.pl.story .pl-cond,.pl.story .pl-foot{padding-left:26px;padding-right:26px}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-family:var(--display);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface)}
+td.r,th.r{text-align:right}
+tr:last-child td{border-bottom:0}
+
+.chart{position:relative;height:260px;min-width:0}
+.chart.tall{height:320px}
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 14px;border-radius:var(--r);background:var(--surface);font-size:14px}
+.banner.blue{background:var(--c2);color:#fff}
+.banner.blue .btn{background:#fff;color:#0b0b0c;border-color:#fff}
+.banner.blue .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:26px;text-align:center;color:var(--muted);display:grid;gap:12px;justify-items:center}
+.footer{padding-block:18px 28px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+@media (max-width:760px){.footer{display:none}}
+
+@media print{
+  body *{visibility:hidden}
+  #pl, #pl *{visibility:visible}
+  #pl{position:absolute;left:0;top:0;border:0}
+  body::before,.topbar,.botnav{display:none}
+}
+</style>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>Normatec<span class="hide-sm"> Rental</span></span></div>
+    <nav class="topnav" id="topnav" aria-label="เมนูหลัก"></nav>
+    <div class="top-actions">
+      <button class="hbtn" id="undoBtn" title="ย้อนกลับ (Cmd/Ctrl + Z)" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span class="hide-sm">ย้อนกลับ</span></button>
+      <span class="hbtn" style="cursor:default" id="saveBox"><span class="save-dot" id="saveDot" data-s="local"></span><span id="saveTxt">บันทึกในเครื่อง</span></span>
+    </div>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<nav class="botnav" id="botnav" aria-label="เมนู"></nav>
+<footer class="footer"><div class="wrap">ตัวเลขทุกตัวแก้ได้ · ตัวเลขที่ไม่มีแหล่งอ้างอิงเป็นค่าประมาณการ ควรปรับเมื่อมีข้อมูลจริง · ไม่ใช่คำแนะนำทางการเงินหรือภาษี</div></footer>
+<div id="layer"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+(function(){
+"use strict";
+const SEED = {"refs": [{"id": "r01", "name": "Super Young (กรุงเทพฯ)", "item": "Normatec Boots – Recovery Session", "kind": "session", "country": "ไทย", "price": 38.25, "currency": "USD", "qty": 1, "unit": "session", "minutes": 30, "inAvg": true, "url": "https://longevity-dtn.pages.dev/compression-therapy", "note": "Normatec ล้วน · ราคาจากเว็บรวมราคา Longevity.haus", "date": "2026-11-08", "bench": true}, {"id": "r02", "name": "Ritual Biohacking (กรุงเทพฯ)", "item": "Normatec Compression Therapy (Normatec 3)", "kind": "session", "country": "ไทย", "price": 75, "currency": "USD", "qty": 1, "unit": "session", "minutes": 60, "inAvg": true, "url": "https://longevity-dtn.pages.dev/compression-therapy", "note": "Normatec ล้วน 60 นาที", "date": "2026-11-08", "bench": true}, {"id": "r03", "name": "Alchemy Cryotherapy Centre (กรุงเทพฯ)", "item": "Reboot Pod (Normatec + BrainTap)", "kind": "session", "country": "ไทย", "price": 86, "currency": "USD", "qty": 1, "unit": "session", "minutes": 30, "inAvg": false, "url": "https://longevity-dtn.pages.dev/compression-therapy", "note": "รวมบริการอื่น จึงไม่ใช้หาค่าเฉลี่ย", "date": "2026-11-08", "bench": true}, {"id": "r04", "name": "Form Recovery & Wellness (อโศก)", "item": "Lymphatic Drainage + Normatec 105 นาที (Klook)", "kind": "session", "country": "ไทย", "price": 27.85, "currency": "USD", "qty": 1, "unit": "session", "minutes": 105, "inAvg": false, "url": "https://www.klook.com/activity/143974-form-recovery-and-wellness-at-asok-experience-in-bangkok/", "note": "ราคาโปรโมชัน Klook รวมนวด", "date": "2026-11-08", "bench": true}, {"id": "r05", "name": "Form Recovery & Wellness (ทองหล่อ)", "item": "Medical Lymphatic Drainage 105 นาที (GoWabi)", "kind": "session", "country": "ไทย", "price": 3500, "currency": "THB", "qty": 1, "unit": "session", "minutes": 105, "inAvg": false, "url": "https://www.gowabi.com/ja/organization_services/medical-lymphatic-drainage-massage-for-water-retension-and-lymphedema-dee53876-2daa-4ebb-bb2d-e681f5dcac08", "note": "ราคาปกติ รวมนวด", "date": "2026-11-08", "bench": true}, {"id": "r06", "name": "Anantara Riverside Bangkok", "item": "Recovery & Rebuild (รวม Compression Boots)", "kind": "info", "country": "ไทย", "price": 14000, "currency": "THB", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://www.anantara.com/ja/riverside-bangkok/offers/recovery-and-rebuild", "note": "แพ็กเกจรวม IV drip, Hyperbaric ฯลฯ ต่อคน", "date": "2026-11-08", "bench": true}, {"id": "r07", "name": "ไม่พบผู้ให้เช่ารายวันในไทยที่ประกาศราคา", "item": "ค้นเว็บ พ.ย. 2026", "kind": "info", "country": "ไทย", "price": 0, "currency": "THB", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "", "note": "ช่องว่างตลาด · ควรสำรวจเพิ่มใน FB Group วิ่ง/ไตรกีฬา, IG, Shopee", "date": "2026-11-08", "bench": true}, {"id": "r08", "name": "Form Recovery & Wellness (hyperice-form.com)", "item": "Normatec Elite Legs – ตัวแทน Hyperice ในไทย", "kind": "retail", "country": "ไทย", "price": 39999, "currency": "THB", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://hyperice-form.com/product/normatec-elite-legs/", "note": "ผู้จัดจำหน่าย B2B หลักของ Hyperice ในไทย", "date": "2026-11-08", "bench": true}, {"id": "r09", "name": "Johnson Health Tech Thailand", "item": "Normatec Elite Legs (ราคาปกติ 45,999)", "kind": "retail", "country": "ไทย", "price": 39999, "currency": "THB", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://johnson.co.th/en/products/sport-recovery-normatec-elite", "note": "ประกันสิ้นสุดถ้าใช้เชิงพาณิชย์ (ฟิตเนส/สโมสร)", "date": "2026-11-08", "bench": true}, {"id": "r10", "name": "Play Strong (กรุงเทพฯ)", "item": "Hyperice Normatec 3 Legs (ปกติ 35,999)", "kind": "retail", "country": "ไทย", "price": 34199, "currency": "THB", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://en.playstrongsport.com/product-page/hyperice-normatec-3-legs-pair", "note": "ราคาลดใกล้เคียงงบ 34,000", "date": "2026-11-08", "bench": true}, {"id": "r11", "name": "Desertcart TH (นำเข้า)", "item": "Normatec 3 Lower Body (ขา + สะโพก)", "kind": "retail", "country": "ไทย", "price": 111163, "currency": "THB", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://www.desertcart.co.th/products/492561872-hyperice-normatec-3-recovery-system-with-patented-dynamic-compression-massage", "note": "รวมภาษีนำเข้า", "date": "2026-11-08", "bench": true}, {"id": "r12", "name": "HYROX Thailand", "item": "ยอดขายบัตร 18,000 ใบ (ปีก่อน 9,000) โต 100%", "kind": "info", "country": "ไทย", "price": 0, "currency": "THB", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://www.nationthailand.com/news/general/40064076", "note": "The Nation, 21 มี.ค. 2026 · กลุ่มเป้าหมายหลัก", "date": "2026-11-08", "bench": true}, {"id": "r13", "name": "Amazing Thailand Marathon Bangkok 2026", "item": "ผู้สมัคร 71,435 คน (28–29 พ.ย. 2026)", "kind": "info", "country": "ไทย", "price": 0, "currency": "THB", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://www.pattayamail.com/?p=570106", "note": "Pattaya Mail, 29 ต.ค. 2026 · ช่วงขาย Race Day/Weekend", "date": "2026-11-08", "bench": true}, {"id": "r14", "name": "Mid West Physiotherapy", "item": "Normatec Recovery Boots rental (สูงสุด 7 วัน)", "kind": "rent", "country": "ไอร์แลนด์", "price": 25, "currency": "EUR", "qty": 1, "unit": "day", "minutes": 30, "inAvg": false, "url": "https://midwestphysio.ie/services/normatec-recovery-boots-rental/", "note": "เฉพาะคนไข้ของคลินิก", "date": "2026-11-08", "bench": true}, {"id": "r15", "name": "Thrive Massage Therapy", "item": "Normatec 3 Leg rental – รายวัน", "kind": "rent", "country": "นิวซีแลนด์", "price": 30, "currency": "NZD", "qty": 1, "unit": "day", "minutes": 30, "inAvg": false, "url": "https://www.thrivemassagetherapy.co.nz/normatec-3-leg-system-rental/", "note": "Christchurch · เว็บไม่ระบุสกุลเงิน คาดว่า NZD", "date": "2026-11-08", "bench": true}, {"id": "r16", "name": "Thrive Massage Therapy", "item": "Normatec 3 Leg rental – รายสัปดาห์", "kind": "rent", "country": "นิวซีแลนด์", "price": 90, "currency": "NZD", "qty": 1, "unit": "week", "minutes": 30, "inAvg": false, "url": "https://www.thrivemassagetherapy.co.nz/normatec-3-leg-system-rental/", "note": "เช่ารายสัปดาห์ถูกกว่ารายวันมาก", "date": "2026-11-08", "bench": true}, {"id": "r17", "name": "MP Massage Therapy (Morzine)", "item": "Recovery boots – ค้างคืน 1 คืน", "kind": "rent", "country": "ฝรั่งเศส", "price": 100, "currency": "EUR", "qty": 1, "unit": "day", "minutes": 30, "inAvg": false, "url": "https://mpmassagetherapy.com/recovery-boots/", "note": "ตลาดนักสกี/ท่องเที่ยว ราคาสูง · ไม่ใช้เทียบ (ราคารีสอร์ตสกี)", "date": "2026-11-08", "bench": false}, {"id": "r18", "name": "MP Massage Therapy (Morzine)", "item": "Recovery boots – 2 คืน", "kind": "rent", "country": "ฝรั่งเศส", "price": 190, "currency": "EUR", "qty": 2, "unit": "day", "minutes": 30, "inAvg": false, "url": "https://mpmassagetherapy.com/recovery-boots/", "note": "ไม่ใช้เทียบ (ราคารีสอร์ตสกี)", "date": "2026-11-08", "bench": false}, {"id": "r19", "name": "Total Conditioning & Osteopathy", "item": "Normatec rental – สุดสัปดาห์ (คืนวันจันทร์)", "kind": "rent", "country": "แคนาดา", "price": 75, "currency": "CAD", "qty": 3, "unit": "day", "minutes": 30, "inAvg": false, "url": "https://www.osteopathicconditioning.ca/product-page/nomatec-legging-rental-weekend", "note": "รับเองที่คลินิก", "date": "2026-11-08", "bench": true}, {"id": "r20", "name": "Sarah's Physio To Go (Gold Coast)", "item": "Normatec hire – ขั้นต่ำ 1 สัปดาห์", "kind": "rent", "country": "ออสเตรเลีย", "price": 199.99, "currency": "AUD", "qty": 1, "unit": "week", "minutes": 30, "inAvg": false, "url": "https://sarahsphysiotogo.com/normatec-recovery-boot-hire/", "note": "มัดจำ 200 · ปรับคืนช้า 50/วัน · เซ็น indemnity", "date": "2026-11-08", "bench": true}, {"id": "r21", "name": "Chain Driven Cycles (Sligo)", "item": "Compression boots hire – 1 สัปดาห์", "kind": "rent", "country": "ไอร์แลนด์", "price": 60, "currency": "EUR", "qty": 1, "unit": "week", "minutes": 30, "inAvg": false, "url": "https://chaindrivencycles.com/products/compression-boots-hire", "note": "ร้านจักรยาน · ขายพ่วงกลุ่มปั่น", "date": "2026-11-08", "bench": true}, {"id": "r22", "name": "Chain Driven Cycles (Sligo)", "item": "Compression boots hire – 1 เดือน", "kind": "rent", "country": "ไอร์แลนด์", "price": 180, "currency": "EUR", "qty": 1, "unit": "month", "minutes": 30, "inAvg": false, "url": "https://chaindrivencycles.com/products/compression-boots-hire", "note": "2 สัปดาห์ €120", "date": "2026-11-08", "bench": true}, {"id": "r23", "name": "Pro Sports Recovery (UK)", "item": "Normatec 3 Legs hire – 7 วัน", "kind": "rent", "country": "อังกฤษ", "price": 55, "currency": "GBP", "qty": 1, "unit": "week", "minutes": 30, "inAvg": false, "url": "https://www.prosportsrecovery.co.uk/normatec-3-legs/", "note": "ไม่มีมัดจำ · ส่ง DPD หรือรับเอง", "date": "2026-11-08", "bench": true}, {"id": "r24", "name": "Pro Sports Recovery (UK)", "item": "Normatec 3 Legs hire – 14 วัน (ขายดีสุด)", "kind": "rent", "country": "อังกฤษ", "price": 85, "currency": "GBP", "qty": 2, "unit": "week", "minutes": 30, "inAvg": false, "url": "https://www.prosportsrecovery.co.uk/normatec-3-legs/", "note": "ระบุว่า Most popular", "date": "2026-11-08", "bench": true}, {"id": "r25", "name": "Pro Sports Recovery (UK)", "item": "Normatec 3 Legs hire – 30 วัน", "kind": "rent", "country": "อังกฤษ", "price": 150, "currency": "GBP", "qty": 1, "unit": "month", "minutes": 30, "inAvg": false, "url": "https://www.prosportsrecovery.co.uk/normatec-3-legs/", "note": "เสริมสะโพก/แขน เริ่ม £25", "date": "2026-11-08", "bench": true}, {"id": "r26", "name": "Kollectiv (New York)", "item": "Normatec 30 นาที", "kind": "session", "country": "สหรัฐฯ", "price": 30, "currency": "USD", "qty": 1, "unit": "session", "minutes": 30, "inAvg": false, "url": "https://kollectivnyc.com/normatec/", "note": "15 นาที $20 · 60 นาที $55", "date": "2026-11-08", "bench": true}, {"id": "r27", "name": "Kollectiv (New York)", "item": "แพ็ก 10 × 30 นาที (หมดอายุ 6 เดือน)", "kind": "session", "country": "สหรัฐฯ", "price": 195, "currency": "USD", "qty": 10, "unit": "session", "minutes": 30, "inAvg": false, "url": "https://kollectivnyc.com/normatec/", "note": "ตัวอย่างแพ็กเกจรอบ", "date": "2026-11-08", "bench": true}, {"id": "r28", "name": "MP Massage Therapy (Morzine)", "item": "ใช้ boots 60 นาที", "kind": "session", "country": "ฝรั่งเศส", "price": 55, "currency": "EUR", "qty": 1, "unit": "session", "minutes": 60, "inAvg": false, "url": "https://mpmassagetherapy.com/recovery-boots/", "note": "เสริมหลังนวด €25", "date": "2026-11-08", "bench": true}, {"id": "r29", "name": "Exercise with Mason (Airbnb, Orange County)", "item": "Normatec Recovery session ถึงบ้าน", "kind": "session", "country": "สหรัฐฯ", "price": 60, "currency": "USD", "qty": 1, "unit": "session", "minutes": 30, "inAvg": false, "url": "https://th.airbnb.com/services/6064767", "note": "บริการเคลื่อนที่ถึงที่พัก", "date": "2026-11-08", "bench": true}, {"id": "r30", "name": "Reboots Rent (เยอรมนี)", "item": "เช่ารายเดือน ขั้นต่ำ 3 เดือน แล้วยกเลิกเมื่อไหร่ก็ได้", "kind": "sub", "country": "เยอรมนี", "price": 0, "currency": "EUR", "qty": 1, "unit": "month", "minutes": 30, "inAvg": false, "url": "https://reboots.com/en-es/pages/reboots-rent", "note": "ส่งฟรี เลือกซื้อเครื่องระหว่างเช่าได้ · ไม่แสดงราคา", "date": "2026-11-08", "bench": true}, {"id": "r31", "name": "LeaseVille (สหรัฐฯ)", "item": "Rent-to-own Normatec 3 Legs", "kind": "sub", "country": "สหรัฐฯ", "price": 1310, "currency": "USD", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://www.leaseville.com/hyperice-normatec-3-legs-system-black.html", "note": "ราคาปลีก $1,310 · ซื้อก่อนกำหนดลดสูงสุด 50%", "date": "2026-11-08", "bench": true}, {"id": "r32", "name": "Hygglo (สหรัฐฯ)", "item": "แพลตฟอร์มเช่าของระหว่างบุคคล มี Normatec ให้เช่า", "kind": "info", "country": "สหรัฐฯ", "price": 0, "currency": "USD", "qty": 1, "unit": "item", "minutes": 30, "inAvg": false, "url": "https://hygglo.com/us/i/30a-hyperice-normatec-compression-boots-rent-for-rapid-recovery", "note": "เปิดหน้าดูราคาไม่ได้ตอนค้น", "date": "2026-11-08", "bench": true}], "clubs": [{"id": "c01", "name": "ชมรมคาราเต้-โด จุฬาฯ", "type": "ศิลปะการต่อสู้", "area": "สามย่าน / จุฬาฯ", "status": "trial", "prob": 50, "members": 0, "seats": 10, "programId": "p6", "contact": "", "note": "นำร่องที่ชมรมเรา · จำนวนที่นั่งเป็นตัวเลขตัวอย่าง แก้ได้", "url": ""}, {"id": "c02", "name": "Real Gym", "type": "HYROX / ฟิตเนส", "area": "บางเขน (ใกล้ลาดพร้าว/รามอินทรา)", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "ยิมเตรียมแข่ง HYROX", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c03", "name": "CUBIC", "type": "HYROX / ฟิตเนส", "area": "EmSphere / ชิดลม (Presidents Tower)", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p7", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c04", "name": "Encore Training Club", "type": "HYROX / ฟิตเนส", "area": "สาทร (อาคารปัญจภูมิ)", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c05", "name": "ONTRACK GYM", "type": "HYROX / ฟิตเนส", "area": "พระราม 3", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c06", "name": "AriFit Bangkok", "type": "HYROX / ฟิตเนส", "area": "อารีย์ ซอย 1", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c07", "name": "BASE", "type": "HYROX / ฟิตเนส", "area": "อัมรินทร์ / สาทร / หลังสวน", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p7", "contact": "", "note": "3 สาขา เหมาะวางเครื่องประจำ", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c08", "name": "CrossFit Arena", "type": "CrossFit", "area": "เพชรบุรี / มักกะสัน", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c09", "name": "F45 Training Asok", "type": "HYROX / ฟิตเนส", "area": "สุขุมวิท 16", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c10", "name": "Elite Fight Club", "type": "ศิลปะการต่อสู้", "area": "สุขุมวิท 30/1", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c11", "name": "CrossFit Naga", "type": "CrossFit", "area": "วัฒนา (ซอยต่อศักดิ์)", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c12", "name": "Iron Hive", "type": "HYROX / ฟิตเนส", "area": "สุขุมวิท / พระโขนง", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c13", "name": "Jetts Black", "type": "HYROX / ฟิตเนส", "area": "The ParQ / Park Silom", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p7", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c14", "name": "Training Ground", "type": "HYROX / ฟิตเนส", "area": "สุขุมวิท 69", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p6", "contact": "", "note": "", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c15", "name": "Fitness First", "type": "HYROX / ฟิตเนส", "area": "หลายสาขาทั่วกรุงเทพฯ", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p7", "contact": "", "note": "เชนใหญ่ ต้องคุยระดับสำนักงานใหญ่", "url": "https://thestandard.co/life/14-hyrox-bangkok-prep-gyms/"}, {"id": "c16", "name": "Milesup Run Club", "type": "วิ่ง", "area": "กรุงเทพฯ", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p2", "contact": "", "note": "ขาย Race Weekend ช่วงงานวิ่ง", "url": "https://runningcrews.com/crews/milesup-run-club-bangkok"}, {"id": "c17", "name": "Cruise Control Run Club", "type": "วิ่ง", "area": "กรุงเทพฯ", "status": "target", "prob": 10, "members": 0, "seats": 0, "programId": "p2", "contact": "", "note": "", "url": "https://runningcrews.com/crews/cruise-control-run-club-bangkok"}]};
+const LIBS = {
+  h2c:"https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js",
+  pdf:"https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
+  xlsx:"https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+};
+const IN_CLAUDE = !!(window.claude && window.claude.use);
+
+/* ================= constants ================= */
+const GROUPS = {
+  rent:   {label:"เช่ารายครั้ง",   short:"เช่า",    color:"--c1", desc:"ลูกค้ายืมเครื่องกลับบ้านเป็นวัน ๆ"},
+  sub:    {label:"สมาชิกรายเดือน", short:"สมาชิก",  color:"--c2", desc:"จ่ายทุกเดือน ใช้ที่บ้านตามสิทธิ์"},
+  club:   {label:"สโมสร",          short:"สโมสร",   color:"--c3", desc:"ขายผ่านยิม / ชมรม ใช้ที่สนามซ้อม"},
+  session:{label:"จ่ายต่อรอบ",     short:"ต่อรอบ",  color:"--c4", desc:"มาใช้ที่จุดบริการ ครั้งละ 30 นาที"}
+};
+const STATUS = [
+  {k:"target",  label:"เป้าหมาย",      prob:10, color:"--c5"},
+  {k:"contact", label:"ติดต่อแล้ว",    prob:25, color:"--c2"},
+  {k:"trial",   label:"นำเสนอ/ทดลอง",  prob:50, color:"--c4"},
+  {k:"won",     label:"ลูกค้าแล้ว",     prob:100,color:"--good"},
+  {k:"lost",    label:"ไม่สนใจ",       prob:0,  color:"--bad"}
+];
+const CLUB_TYPES = ["วิ่ง","HYROX / ฟิตเนส","CrossFit","ศิลปะการต่อสู้","ฟุตบอล","ไตรกีฬา / จักรยาน","มหาวิทยาลัย","อื่น ๆ"];
+const REF_KINDS = {rent:"ราคาเช่า", session:"บริการต่อรอบ", sub:"สมาชิก / ผ่อน", retail:"ราคาเครื่อง", info:"ข้อมูลตลาด"};
+const UNITS = {day:"วัน", week:"สัปดาห์", month:"เดือน", session:"รอบ", item:"ชิ้น"};
+const UNIT_DAYS = {day:1, week:7, month:30};
+const ICON = {
+  sum:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>',
+  price:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+  club:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></svg>',
+  more:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>',
+  dl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+  share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>'
+};
+
+const DEFAULT = {
+  v:2,
+  fx:{THB:1, USD:33, EUR:38, GBP:43.5, AUD:21.5, NZD:19.5, CAD:23.5, SGD:25.5},
+  machine:{count:4, price:34000, accessories:2500, lifeMonths:36, resalePct:25, sleeveCost:6000, sleeveEvery:18, maxUtil:85, sessionMin:35, openHours:8},
+  ops:{cleaning:50, consumable:20, tripCost:150, deliveryShare:50, damagePct:5, payFeePct:0, taxPct:0, rampMonths:4, rampStart:40, growthPct:2, horizon:36, targetMonths:12},
+  whatIf:{price:100, demand:100},
+  market:{localFactor:70, discount:30, sessionDiscount:60, markup:30},
+  value:{usesPerMonth:8, clinicPrice:0, buyPrice:39999},
+  policy:{deposit:10000, rtoCreditPct:50, lateFee:300, pauseDays:14},
+  sheet:{title:"Recovery Rental", sub:"เช่าเครื่อง Normatec ฟื้นฟูกล้ามเนื้อ ส่งถึงที่ในกรุงเทพฯ", contact:"LINE: @yourline", phone:"", showSave:true, showCond:true, layout:"a4", dark:false, hidden:[]},
+  setup:[{name:"โลโก้ + ถ่ายรูปสินค้า + สัญญา/waiver", amount:5000},{name:"แอดเปิดตัว + บูธทดลองที่สนามแข่ง", amount:3000}],
+  monthly:[{name:"การตลาดออนไลน์ (FB / IG / TikTok)", amount:2000},{name:"LINE OA + โทรศัพท์", amount:300},{name:"คนช่วยส่งของ / ทำความสะอาด", amount:0}],
+  programs:[
+    {id:"p1", on:true, group:"rent",    name:"Race Day · 1 วัน",              price:490,  per:"ครั้ง", qty:6,  useType:"days",     use:1.5, uses:2,  handovers:1,    revShare:0,  minTerm:0, desc:"เช่าวันแข่งหรือวันหลังแข่ง รับ-ส่งถึงที่"},
+    {id:"p2", on:true, group:"rent",    name:"Race Weekend · 3 วัน",          price:1190, per:"ครั้ง", qty:4,  useType:"days",     use:3.5, uses:4,  handovers:1,    revShare:0,  minTerm:0, desc:"ศุกร์–จันทร์ ช่วงงานวิ่ง / HYROX / แข่งกีฬา"},
+    {id:"p3", on:true, group:"rent",    name:"Training Week · 7 วัน",         price:1990, per:"ครั้ง", qty:2,  useType:"days",     use:7.5, uses:7,  handovers:1,    revShare:0,  minTerm:0, desc:"สัปดาห์ซ้อมหนัก / แคมป์เก็บตัว"},
+    {id:"p4", on:true, group:"sub",     name:"Home Monthly · เครื่องอยู่บ้าน",  price:3900, per:"เดือน", qty:1,  useType:"days",     use:30,  uses:20, handovers:0.34, revShare:0,  minTerm:3, desc:"ใช้ได้ทุกวัน สัญญาขั้นต่ำ 3 เดือน"},
+    {id:"p5", on:true, group:"sub",     name:"Weekend Pass · ทุกเสาร์-อาทิตย์", price:2490, per:"เดือน", qty:1,  useType:"days",     use:10,  uses:8,  handovers:4,    revShare:0,  minTerm:1, desc:"รับเครื่องศุกร์เย็น คืนจันทร์เช้า 4 ครั้ง/เดือน"},
+    {id:"p6", on:true, group:"club",    name:"Club Pass · 8 รอบ/เดือน",        price:1490, per:"เดือน", qty:15, useType:"sessions", use:8,   uses:8,  handovers:0,    revShare:15, minTerm:1, desc:"ใช้ที่สนามซ้อมของสโมสร 8 รอบต่อเดือน"},
+    {id:"p7", on:true, group:"club",    name:"Club Station · วางเครื่องประจำ",  price:6900, per:"เดือน", qty:0,  useType:"days",     use:30,  uses:60, handovers:0.17, revShare:0,  minTerm:6, desc:"สโมสรเช่าเครื่องไปวางให้สมาชิกใช้ สัญญา 6 เดือน"},
+    {id:"p8", on:true, group:"session", name:"Drop-in · 30 นาที",              price:350,  per:"ครั้ง", qty:40, useType:"sessions", use:1,   uses:1,  handovers:0,    revShare:15, minTerm:0, desc:"จ่ายต่อรอบที่จุดบริการ ไม่ต้องสมัครสมาชิก"}
+  ],
+  clubs:(SEED&&SEED.clubs)||[],
+  refs:(SEED&&SEED.refs)||[]
+};
+const PAGES = [
+  {k:"summary", label:"สรุป",       icon:"sum",   bot:true},
+  {k:"pricing", label:"ตั้งราคา",    icon:"price", bot:true},
+  {k:"sheet",   label:"ใบราคา",     icon:"list",  bot:true},
+  {k:"clubs",   label:"ลูกค้า",      icon:"club",  bot:true},
+  {k:"market",  label:"ตลาด"},
+  {k:"costs",   label:"ต้นทุน"},
+  {k:"config",  label:"ตั้งค่า"}
+];
+
+/* ================= state ================= */
+const clone = o => JSON.parse(JSON.stringify(o));
+function migrate(x){
+  const d = clone(DEFAULT);
+  if(!x || typeof x!=="object") return d;
+  for(const k of Object.keys(d)){
+    if(x[k]===undefined) continue;
+    if(Array.isArray(d[k])) d[k] = Array.isArray(x[k]) ? x[k] : d[k];
+    else if(d[k] && typeof d[k]==="object") d[k] = Object.assign({}, d[k], x[k]);
+    else d[k] = x[k];
+  }
+  d.v = 2;
+  d.refs.forEach(r=>{ if(r && r.bench===undefined) r.bench = !(r.kind==="rent" && /MP Massage|Morzine/.test(r.name||"")); });
+  return d;
+}
+let S = clone(DEFAULT);
+try{ const ls = localStorage.getItem("nrp-state"); if(ls) S = migrate(JSON.parse(ls)); }catch(e){}
+let page = "summary";
+let flt = {clubStatus:"all", refScope:"all", refKind:"all", progGroup:"all"};
+const charts = {};
+const undoStack = [];
+let undoArmed = true, undoTimer = null;
+
+/* ================= helpers ================= */
+const $ = (s,el=document) => el.querySelector(s);
+const $$ = (s,el=document) => [...el.querySelectorAll(s)];
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const n = v => { const x = Number(v); return isFinite(x) ? x : 0; };
+const fmt = (v,d=0) => (isFinite(v)?Number(v):0).toLocaleString("th-TH",{maximumFractionDigits:d});
+const baht = v => (v<0?"-":"") + "฿" + fmt(Math.abs(Math.round(v)));
+const pct = v => fmt(v*100,0) + "%";
+const monthsTxt = v => v==null||!isFinite(v) ? "ยังไม่คืนทุน" : v<1 ? "ไม่ถึง 1 เดือน" : fmt(v,1)+" เดือน";
+const uid = p => p + Math.random().toString(36).slice(2,8);
+const cssv = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888";
+const getPath = (o,p) => p.split(".").reduce((a,k)=>a==null?a:a[k], o);
+function setPath(o,p,v){ const ks=p.split("."); let t=o; for(let i=0;i<ks.length-1;i++){ t=t[ks[i]]; if(t==null) return; } t[ks[ks.length-1]]=v; }
+const progById = id => S.programs.find(p=>p.id===id);
+const median = a => { if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
+function nicePrice(x){
+  if(!(x>0)) return 0;
+  if(x<100) return Math.max(10, Math.round(x/10)*10);
+  const step = x<1000?50 : x<5000?100 : 500;
+  const v = Math.ceil(x/step)*step;
+  return v-10 > x*0.9 ? v-10 : v;
+}
+const priceStep = p => p<1000?10 : p<5000?50 : 100;
+const todayTH = () => new Date().toLocaleDateString("th-TH",{day:"numeric",month:"long",year:"numeric"});
+function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove("show"),2200); }
+
+/* ================= model ================= */
+function machineDays(p){ const m=S.machine; return p.useType==="sessions" ? n(p.use)*n(m.sessionMin)/Math.max(1,n(m.openHours)*60) : n(p.use); }
+function usesOf(p){ return p.useType==="sessions" ? n(p.use) : n(p.uses); }
+function varUnit(p){
+  const o=S.ops;
+  return n(p.handovers)*(n(o.cleaning) + n(o.deliveryShare)/100*2*n(o.tripCost)) + (p.useType==="sessions" ? n(p.use)*n(o.consumable) : 0);
+}
+const clubSeats = pid => S.clubs.filter(c=>c.status==="won" && c.programId===pid).reduce((a,c)=>a+n(c.seats),0);
+const refTHB = r => n(r.price)*n(S.fx[r.currency]||1);
+const refDays = r => UNIT_DAYS[r.unit] ? Math.max(1,n(r.qty))*UNIT_DAYS[r.unit] : null;
+const refPerDay = r => refDays(r) ? refTHB(r)/refDays(r) : null;
+const refPer30 = r => r.unit==="session" ? refTHB(r)/Math.max(1,n(r.qty))/Math.max(1,n(r.minutes)||30)*30 : null;
+function clinicAvg(){
+  if(n(S.value.clinicPrice)>0) return n(S.value.clinicPrice);
+  const xs = S.refs.filter(r=>r.kind==="session" && r.inAvg && n(r.price)>0).map(refPer30).filter(Boolean);
+  return xs.length ? avg(xs) : 1250;
+}
+function rentalLen(p){
+  if(p.useType!=="days") return 0;
+  const per = n(p.handovers)>=1 ? n(p.use)/n(p.handovers) : n(p.use);
+  return Math.max(1, Math.floor(per));
+}
+/* market benchmark for one program, with the references it used */
+function marketFor(p){
+  if(p.useType==="sessions"){
+    if(n(p.use)>1){
+      const packs = S.refs.filter(r=>r.kind==="session" && r.bench!==false && n(r.qty)>1 && n(r.price)>0);
+      const per = packs.length ? median(packs.map(refPer30))*n(S.market.localFactor)/100 : clinicAvg()*0.6;
+      return {price: per*n(p.use), perUnit: per, basis: packs.length ? `แพ็กหลายรอบในต่างประเทศ × ${fmt(S.market.localFactor)}% ≈ ${baht(per)} / รอบ × ${fmt(p.use)} รอบ` : `คลินิกไทย × 60% ≈ ${baht(per)} / รอบ × ${fmt(p.use)} รอบ`, refs: packs, local:false};
+    }
+    const thR = S.refs.filter(r=>r.kind==="session" && r.inAvg && n(r.price)>0);
+    const per = clinicAvg();
+    return {price: per, perUnit: per, basis:`คลินิกในไทย ${baht(per)} / 30 นาที`, refs: thR, local:true};
+  }
+  const L = rentalLen(p);
+  const rents = S.refs.filter(r=>r.kind==="rent" && r.bench!==false && n(r.price)>0 && refDays(r));
+  let pick;
+  if(L<=2) pick = rents.filter(r=>refDays(r)<=2);
+  else if(L<=5) pick = rents.filter(r=>refDays(r)>=2 && refDays(r)<=5);
+  else if(L<=20) pick = rents.filter(r=>refDays(r)>=6 && refDays(r)<=20);
+  else pick = rents.filter(r=>refDays(r)>=21);
+  if(!pick.length) pick = rents;
+  const th = pick.filter(r=>r.country==="ไทย");
+  const use = th.length ? th : pick;
+  const local = th.length>0;
+  const perDay = median(use.map(refPerDay)) * (local?1:n(S.market.localFactor)/100);
+  const days = p.per==="เดือน" ? n(p.use) : L;
+  return {price: perDay*days, perUnit: perDay, basis:`${local?"ตลาดไทย":"ตลาดต่างประเทศ × "+fmt(S.market.localFactor)+"%"} ≈ ${baht(perDay)} / วัน × ${fmt(days)} วัน`, refs: use, local};
+}
+
+function compute(ov={}){
+  const m=S.machine, o=S.ops;
+  const count = ov.count ?? n(m.count), price = ov.price ?? n(m.price);
+  const pm = ov.priceMul ?? n(S.whatIf.price)/100, dm = ov.demandMul ?? n(S.whatIf.demand)/100;
+  const H = Math.max(1, Math.min(60, Math.round(n(o.horizon))||36));
+  const capacity = count*30*n(m.maxUtil)/100;
+  const setup = S.setup.reduce((a,x)=>a+n(x.amount),0);
+  const investMachines = count*(price+n(m.accessories));
+  const invest = investMachines + setup;
+  const sleeveM = count*n(m.sleeveCost)/Math.max(1,n(m.sleeveEvery));
+  const fixed = S.monthly.reduce((a,x)=>a+n(x.amount),0) + sleeveM;
+  const depM = investMachines*(1-n(m.resalePct)/100)/Math.max(1,n(m.lifeMonths));
+  const lossPct = (n(o.damagePct)+n(o.payFeePct))/100;
+  const progs = S.programs.filter(p=>p.on).map(p=>{
+    const override = ov.progPrice && ov.progPrice[p.id]!=null ? ov.progPrice[p.id] : n(p.price);
+    return {p, base:n(p.qty)+clubSeats(p.id), unitPrice:override*pm, md:machineDays(p), vu:varUnit(p), share:n(p.revShare)/100, uses:usesOf(p)};
+  });
+  function month(r,g){
+    let dmd=0; progs.forEach(x=>{ x.q=x.base*dm*r*g; dmd+=x.q*x.md; });
+    const scale = dmd>capacity && dmd>0 ? capacity/dmd : 1;
+    let rev=0,vc=0,sh=0; const by={};
+    progs.forEach(x=>{ const q=x.q*scale, rv=q*x.unitPrice, v=q*x.vu, s=rv*x.share; rev+=rv; vc+=v; sh+=s; by[x.p.id]={q,rev:rv,profit:rv-v-s-rv*lossPct}; });
+    const loss=rev*lossPct, ebitda=rev-vc-sh-loss-fixed, tax=Math.max(0,ebitda-depM)*n(o.taxPct)/100;
+    return {rev,vc,sh,loss,fixed,ebitda,tax,net:ebitda-tax,by,dmd,used:Math.min(dmd,capacity),sold:scale<1};
+  }
+  const rampN=Math.max(1,Math.round(n(o.rampMonths))), r0=n(o.rampStart)/100, gr=n(o.growthPct)/100;
+  const series=[]; let cum=-invest, pay=null;
+  for(let i=1;i<=H;i++){
+    const r = rampN<=1?1:Math.min(1, r0+(1-r0)*(i-1)/(rampN-1));
+    const mo = month(r, Math.pow(1+gr,i-1));
+    const prev=cum; cum+=mo.net; mo.cum=cum; mo.i=i;
+    if(pay==null && cum>=0) pay=(i-1)+(mo.net>0?(-prev)/mo.net:0);
+    series.push(mo);
+  }
+  const st = month(1,1);
+  const util = capacity>0 ? st.dmd/capacity : 0;
+  const perMachine = 30*n(m.maxUtil)/100;
+  const need = perMachine>0 ? Math.ceil(st.dmd/perMachine) : 0;
+  // cost per used machine-day (capital paid back in target months + fixed)
+  const usedMD = Math.max(1, st.used);
+  const costPerMD = (invest/Math.max(1,n(o.targetMonths)) + fixed)/usedMD;
+  return {count, price, invest, investMachines, setup, fixed, sleeveM, capacity, progs, series, st, util, need, H, costPerMD, lossPct,
+          payback:pay, end:cum, resale:count*price*n(m.resalePct)/100,
+          customers: progs.reduce((a,x)=>a+((st.by[x.p.id]||{}).q||0),0)};
+}
+function floorFor(p, R){
+  const share=n(p.revShare)/100, denom=Math.max(.05, 1-share-R.lossPct);
+  return {target:(varUnit(p)+machineDays(p)*R.costPerMD)/denom, cash: varUnit(p)/denom};
+}
+function suggestFor(p, R){
+  const mk = marketFor(p), fl = floorFor(p,R);
+  const disc = p.useType==="sessions" ? n(S.market.sessionDiscount) : n(S.market.discount);
+  const byMarket = mk.price*(1-disc/100);
+  const byCost = fl.target*(1+n(S.market.markup)/100);
+  return {mk, fl, disc, value: nicePrice(Math.max(byMarket, fl.target)), byMarket:nicePrice(byMarket), byCost:nicePrice(byCost)};
+}
+
+/* ================= storage ================= */
+let docRef=null, saveTimer=null, saving=false, again=false, lastJSON="", loadTimer=null;
+function setSave(s,t){ $("#saveDot").dataset.s=s; $("#saveTxt").textContent=t; }
+function persistLocal(){ try{ localStorage.setItem("nrp-state", JSON.stringify(S)); }catch(e){} }
+function scheduleSave(){
+  persistLocal();
+  if(!docRef){ setSave("local","บันทึกในเครื่องแล้ว"); return; }
+  setSave("saving","กำลังบันทึก");
+  clearTimeout(saveTimer); saveTimer=setTimeout(doSave,900);
+}
+async function doSave(){
+  saveTimer=null; if(saving){ again=true; return; } saving=true;
+  const json=JSON.stringify(S);
+  try{ await docRef.set({state:JSON.parse(json),updatedAt:Date.now()}); lastJSON=json; setSave("ok","บันทึกแล้ว"); }
+  catch(e){ if(e&&e.code==="invalid_argument"){ setSave("err","ดูอย่างเดียว"); docRef=null; } else setSave("err","บันทึกไม่สำเร็จ"); }
+  saving=false; if(again){ again=false; doSave(); }
+}
+function connect(){
+  if(!IN_CLAUDE){ setSave("local","บันทึกในเครื่อง"); return; }
+  window.claude.use("db").then(db=>{
+    if(!db){ setSave("local","บันทึกในเครื่อง"); return; }
+    docRef=db.doc("app/state");
+    loadTimer=setTimeout(()=>setSave("err","ยังโหลดไม่ได้"),10000);
+    docRef.onSnapshot(snap=>{
+      if(!snap.metadata.fromCache) clearTimeout(loadTimer);
+      if(!snap.exists){ if(!snap.metadata.fromCache) setSave("ok","พร้อมบันทึก"); return; }
+      const json=JSON.stringify((snap.data()||{}).state||{});
+      if(saveTimer||saving||json===lastJSON){ if(!saveTimer&&!saving) setSave("ok","บันทึกแล้ว"); return; }
+      const a=document.activeElement; if(a && a.matches && a.matches("input,textarea,select")) return;
+      lastJSON=json; S=migrate(JSON.parse(json)); persistLocal(); setSave("ok","บันทึกแล้ว"); render(false);
+    }, ()=>{ clearTimeout(loadTimer); setSave("err","ใช้ข้อมูลในเครื่อง"); docRef=null; });
+  }).catch(()=>setSave("local","บันทึกในเครื่อง"));
+}
+
+/* ================= undo + mutate ================= */
+function snapshotForUndo(){
+  if(!undoArmed) return;
+  undoStack.push(JSON.stringify(S)); if(undoStack.length>40) undoStack.shift();
+  undoArmed=false; $("#undoBtn").disabled=false;
+}
+function rearmUndo(){ clearTimeout(undoTimer); undoTimer=setTimeout(()=>{undoArmed=true;},1200); }
+function mutate(fn, opts={}){
+  snapshotForUndo(); fn(); rearmUndo(); scheduleSave();
+  if(opts.render) render(false); else refresh();
+}
+function undo(){
+  const prev=undoStack.pop(); if(!prev) return;
+  S=migrate(JSON.parse(prev)); undoArmed=true; scheduleSave(); render(false);
+  $("#undoBtn").disabled=!undoStack.length; toast("ย้อนกลับแล้ว");
+}
+
+/* ================= UI pieces ================= */
+function groupTag(g){ const G=GROUPS[g]||GROUPS.rent; return `<span class="tag"><span class="dot" style="background:var(${G.color})"></span>${G.label}</span>`; }
+function stepper(path, val, opts={}){
+  return `<div class="stepper ${opts.sm?"sm":""}" data-step="${opts.step||"auto"}" data-k="${path}" data-min="${opts.min??0}">
+    <button type="button" data-act="dec" aria-label="ลด">−</button>
+    <input type="number" inputmode="decimal" aria-label="${esc(opts.label||path)}" data-k="${path}" data-t="n" value="${esc(val)}">
+    <button type="button" data-act="inc" aria-label="เพิ่ม">+</button></div>`;
+}
+function field(path, label, opts={}){
+  const v=getPath(S,path), id="f-"+path.replace(/\./g,"-");
+  if(opts.type==="select") return `<div class="f ${opts.wide?"wide":""}"><label for="${id}">${label}</label><select id="${id}" data-k="${path}" ${opts.num?'data-t="n"':""} ${opts.rr?'data-rr="1"':""}>${opts.options.map(([a,b])=>`<option value="${esc(a)}" ${String(a)===String(v)?"selected":""}>${esc(b)}</option>`).join("")}</select>${opts.help?`<span class="help">${opts.help}</span>`:""}</div>`;
+  if(opts.type==="text"||opts.type==="url") return `<div class="f ${opts.wide?"wide":""}"><label for="${id}">${label}</label><input id="${id}" type="${opts.type}" data-k="${path}" value="${esc(v)}" ${opts.ph?`placeholder="${esc(opts.ph)}"`:""}>${opts.help?`<span class="help">${opts.help}</span>`:""}</div>`;
+  if(opts.type==="check") return `<label class="toggle ${opts.wide?"wide":""}"><input type="checkbox" data-k="${path}" data-t="b" ${opts.rr?'data-rr="1"':""} ${v?"checked":""}> ${label}</label>`;
+  return `<div class="f ${opts.wide?"wide":""}"><label>${label}${opts.unit?` <span style="opacity:.7">(${opts.unit})</span>`:""}</label>${stepper(path,v,{sm:true,step:opts.step,min:opts.min,label})}${opts.help?`<span class="help">${opts.help}</span>`:""}</div>`;
+}
+const out = (k,cls="") => `<span data-o="${k}" class="${cls}"></span>`;
+
+/* sheets (modals) */
+let sheetOnClose=null;
+function openSheet(title, body, foot="", onClose=null){
+  const L=$("#layer");
+  L.innerHTML = `<div class="scrim" data-act="closeSheet"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <div class="sheet-head"><h3>${esc(title)}</h3><button class="xbtn" data-act="closeSheet" aria-label="ปิด">×</button></div>
+    <div class="sheet-body">${body}</div>${foot?`<div class="sheet-foot">${foot}</div>`:""}</div>`;
+  sheetOnClose=onClose;
+  requestAnimationFrame(()=>{ $(".scrim",L).classList.add("show"); $(".sheet",L).classList.add("show"); const f=$(".sheet input[type=text]",L); if(f && !matchMedia("(max-width:760px)").matches) f.focus(); });
+}
+function closeSheet(){
+  const L=$("#layer"), sh=$(".sheet",L), sc=$(".scrim",L);
+  if(!sh) return;
+  sh.classList.remove("show"); sc.classList.remove("show");
+  setTimeout(()=>{ L.innerHTML=""; if(sheetOnClose){ const f=sheetOnClose; sheetOnClose=null; f(); } },260);
+}
+
+/* ================= pages ================= */
+function pSummary(R){
+  const st=R.st, tgt=n(S.ops.targetMonths);
+  const status = R.payback==null ? ["bad","ยังไม่คืนทุนในแผนนี้","var(--bad)"] : R.payback<=tgt ? ["good","คืนทุนเร็วกว่าเป้า "+tgt+" เดือน","#4cc47f"] : ["warn","คืนทุนช้ากว่าเป้า "+tgt+" เดือน","#f0a63a"];
+  const top = R.progs.map(x=>({x,b:st.by[x.p.id]||{rev:0}})).filter(o=>o.b.rev>0).sort((a,b)=>b.b.rev-a.b.rev);
+  const maxRev = top.length? top[0].b.rev : 1;
+  const best = R.progs.filter(x=>x.uses>0 && x.base>0).map(x=>({x,per:x.unitPrice/x.uses})).sort((a,b)=>a.per-b.per)[0];
+  const clinic = clinicAvg();
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">ภาพรวมธุรกิจ · ${todayTH()}</div><h1>สรุปแผน</h1></div>
+    <div class="btns"><button class="btn ghost sm" data-go="pricing">ปรับราคา</button><button class="btn sm" data-go="sheet">${ICON.list} ดูใบราคา</button></div></div>
+
+  <div class="verdict">
+    <span class="light"><i style="background:${status[2]}"></i>${status[1]}</span>
+    <div class="sentence">ลงทุน <b>${baht(R.invest)}</b> ซื้อ ${fmt(R.count)} เครื่อง ได้กำไรประมาณ <b>${baht(st.net)}</b> ต่อเดือน และ<b>${R.payback==null?"ยังไม่คืนทุน":"คืนทุนในเดือนที่ "+Math.ceil(R.payback)}</b></div>
+    <div style="font-size:14px;opacity:.75">มีลูกค้า / การเช่าประมาณ ${fmt(R.customers)} รายการต่อเดือน · เครื่องถูกใช้ ${pct(Math.min(R.util,9.99))} ของเวลา</div>
+  </div>
+
+  <div class="big3">
+    <div class="bigstat"><span class="l">ลงทุนครั้งแรก</span><span class="v num" data-count="${R.invest}">${baht(R.invest)}</span><span class="s">เครื่อง ${baht(R.investMachines)} + เริ่มต้น ${baht(R.setup)}</span></div>
+    <div class="bigstat"><span class="l">รายได้ / เดือน</span><span class="v num" data-count="${st.rev}">${baht(st.rev)}</span><span class="s">หักทุกอย่างแล้วเหลือ ${baht(st.net)}</span></div>
+    <div class="bigstat"><span class="l">เงินสะสมเมื่อครบ ${R.H} เดือน</span><span class="v num" data-count="${R.end}">${baht(R.end)}</span><span class="s">ถ้าขายเครื่องต่อได้อีก ${baht(R.resale)}</span></div>
+  </div>
+
+  <div class="card">
+    <div class="page-title"><h3>ลองปรับดู ถ้า…</h3><button class="btn ghost sm" data-act="resetWhatIf">กลับเป็นปกติ</button></div>
+    <div class="grid2">
+      <div class="slider"><div class="top"><span>ราคาทุกโปรแกรม</span><b>${out("wiP")}</b></div><input type="range" min="50" max="150" step="5" data-k="whatIf.price" data-t="n" value="${n(S.whatIf.price)}" aria-label="ราคาทุกโปรแกรม"></div>
+      <div class="slider"><div class="top"><span>จำนวนลูกค้า</span><b>${out("wiD")}</b></div><input type="range" min="25" max="200" step="5" data-k="whatIf.demand" data-t="n" value="${n(S.whatIf.demand)}" aria-label="จำนวนลูกค้า"></div>
+    </div>
+    <div class="result-row"><span>กำไร / เดือน <b class="num">${out("netM")}</b></span><span>คืนทุน <b class="num">${out("payTxt")}</b></span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><h3>เงินลงทุนกลับมาเมื่อไหร่</h3><p class="hint">แท่งแดง = ยังขาดทุนสะสม · แท่งเขียว = คืนทุนแล้ว</p><div class="chart"><canvas id="chCum" role="img" aria-label="กราฟเงินสะสมรายเดือน"></canvas></div></div>
+    <div class="card"><h3>เงินมาจากโปรแกรมไหน</h3><p class="hint">รายได้ต่อเดือนเมื่อลูกค้าครบ</p>
+      <div class="hbar">${top.length? top.map(({x,b})=>`<div class="hbar-row"><span class="t">${esc(x.p.name)}</span><span class="v num">${baht(b.rev)}</span><div class="hbar-track"><div class="hbar-fill" style="width:${(b.rev/maxRev*100).toFixed(1)}%;background:var(${GROUPS[x.p.group].color})"></div></div></div>`).join("") : `<p class="hint">ยังไม่มีรายได้ ใส่จำนวนลูกค้าในหน้าตั้งราคา</p>`}</div>
+      <div class="legend">${Object.entries(GROUPS).map(([k,g])=>`<span><i class="dot" style="background:var(${g.color})"></i>${g.label}</span>`).join("")}</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card flat"><h3>เทียบกับไปคลินิก</h3>
+      <p style="margin:0;font-size:15px">คลินิกในกรุงเทพฯ คิดประมาณ <b>${baht(clinic)}</b> ต่อ 30 นาที ${best?`ลูกค้าที่ใช้ <b>${esc(best.x.p.name)}</b> ของเราจ่ายเพียง <b>${baht(best.per)}</b> ต่อครั้ง ถูกกว่า <b>${pct(1-best.per/clinic)}</b>`:""}</p>
+      <button class="btn ghost sm" data-go="market" style="width:max-content">ดูข้อมูลตลาด</button></div>
+    <div class="card flat"><h3>เครื่องพอไหม</h3>
+      <p style="margin:0;font-size:15px">${R.util>1?`ลูกค้าเกินความจุ ควรมี <b>${R.need} เครื่อง</b> (ตอนนี้ ${R.count})`:R.util<.5?`เครื่องยังว่างมาก ใช้แค่ <b>${pct(R.util)}</b> อาจเริ่มที่ <b>${Math.max(1,R.need)} เครื่อง</b> ก่อน`:`พอดี ใช้ <b>${pct(R.util)}</b> ของเวลาที่ปล่อยได้`}</p>
+      <div class="btns"><button class="btn ghost sm" data-act="machines" data-d="-1">− 1 เครื่อง</button><button class="btn ghost sm" data-act="machines" data-d="1">+ 1 เครื่อง</button></div></div>
+  </div>
+
+  <div class="card"><h3>สิ่งที่ควรทำต่อ</h3><ul class="todo">${todos(R)}</ul></div>
+  </section>`;
+}
+function todos(R){
+  const st=R.st, list=[], tgt=n(S.ops.targetMonths);
+  const under = S.programs.filter(p=>p.on && n(p.price) < floorFor(p,R).cash);
+  if(under.length) list.push(["bad","!",`${under.map(p=>esc(p.name)).join(", ")} ราคาต่ำกว่าค่าส่งและค่าทำความสะอาด ขาดทุนทุกครั้งที่ขาย`, `<button class="btn sm" data-go="pricing">แก้ราคา</button>`]);
+  if(R.payback==null || R.payback>tgt) list.push(["warn","!",`คืนทุนช้ากว่าเป้า ลองกด "ใช้ราคาแนะนำ" หรือหาลูกค้าสโมสรเพิ่ม`, `<button class="btn sm" data-act="applyAll" data-mode="suggest">ใช้ราคาแนะนำทั้งหมด</button>`]);
+  else list.push(["good","✓",`คืนทุนในเดือนที่ ${Math.ceil(R.payback)} เร็วกว่าเป้า ${tgt} เดือน`, ""]);
+  if(R.util>1) list.push(["bad","!",`ลูกค้าเกินความจุเครื่อง ต้องมี ${R.need} เครื่อง`, `<button class="btn sm" data-act="setMachines" data-v="${R.need}">ตั้งเป็น ${R.need} เครื่อง</button>`]);
+  const pend = S.clubs.filter(c=>c.status==="target").length;
+  if(pend) list.push(["info","→",`มีสโมสรเป้าหมายที่ยังไม่ได้ติดต่อ ${pend} แห่ง เริ่มจากที่ใกล้ที่สุดก่อน`, `<button class="btn ghost sm" data-go="clubs">ดูรายชื่อ</button>`]);
+  list.push(["info","→","ส่งใบราคาให้ลูกค้าหรือสโมสร เป็นรูปหรือ PDF", `<button class="btn ghost sm" data-go="sheet">เปิดใบราคา</button>`]);
+  return list.map(([c,i,t,a])=>`<li><span class="ic ${c}">${i}</span><div>${t}${a?`<div class="act">${a}</div>`:""}</div></li>`).join("");
+}
+
+function pPricing(R){
+  const list = S.programs.map((p,i)=>({p,i})).filter(({p})=>flt.progGroup==="all"||p.group===flt.progGroup);
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Pricing Studio</div><h1>ตั้งราคา</h1>
+    <p class="lead">กด + / − เพื่อปรับราคาและจำนวนลูกค้า หรือกดปุ่มให้ระบบตั้งราคาจากตลาดหรือจากต้นทุน แถบสีบอกว่าราคาอยู่ตรงไหน: แดง = ขาดทุน · เขียว = ดี · เหลือง = แพงกว่าตลาด</p></div>
+    <button class="btn" data-act="addProgram">+ เพิ่มโปรแกรม</button></div>
+
+  <div class="card flat">
+    <div class="btns">
+      <button class="btn sm" data-act="applyAll" data-mode="suggest">ใช้ราคาแนะนำทั้งหมด</button>
+      <button class="btn ghost sm" data-act="applyAll" data-mode="market">ถูกกว่าตลาด ทั้งหมด</button>
+      <button class="btn ghost sm" data-act="applyAll" data-mode="cost">ต้นทุน +${fmt(S.market.markup)}% ทั้งหมด</button>
+      <button class="btn ghost sm" data-act="pricingRules">ตั้งค่าการคิดราคา</button>
+    </div>
+    <p class="hint">ราคาแนะนำ = ถูกกว่าตลาด (เช่า ${fmt(S.market.discount)}% · บริการต่อรอบ ${fmt(S.market.sessionDiscount)}%) แต่ไม่ต่ำกว่าราคาที่ทำให้คืนทุนใน ${fmt(S.ops.targetMonths)} เดือน แล้วปัดเป็นตัวเลขสวย ๆ เช่น 490, 1,190</p>
+  </div>
+
+  <div class="scroll-x" role="group" aria-label="กรองประเภท">
+    <button class="chip" data-flt="progGroup" data-v="all" aria-pressed="${flt.progGroup==="all"}">ทั้งหมด ${S.programs.length}</button>
+    ${Object.entries(GROUPS).map(([k,g])=>`<button class="chip" data-flt="progGroup" data-v="${k}" aria-pressed="${flt.progGroup===k}">${g.label} ${S.programs.filter(p=>p.group===k).length}</button>`).join("")}
+  </div>
+
+  <div class="grid2">${list.length? list.map(({p,i})=>progCard(p,i,R)).join("") : `<div class="empty">ยังไม่มีโปรแกรมประเภทนี้<button class="btn sm" data-act="addProgram">+ เพิ่มโปรแกรม</button></div>`}</div>
+
+  <div class="card"><h3>ลูกค้าจ่ายต่อ 1 ครั้งที่ใช้</h3><p class="hint">เทียบคลินิก ${baht(clinicAvg())} / 30 นาที (แท่งเทา)</p><div class="chart tall"><canvas id="chPerUse" role="img" aria-label="กราฟราคาต่อครั้ง"></canvas></div></div>
+
+  <div class="card"><h3>กติกาของทุกโปรแกรม</h3>
+    <div class="fields">
+      ${field("policy.deposit","เงินมัดจำ",{unit:"บาท",step:1000})}
+      ${field("policy.rtoCreditPct","ซื้อเครื่องต่อ: นำค่าเช่ามาลด",{unit:"%",step:10})}
+      ${field("policy.lateFee","ค่าปรับคืนช้า",{unit:"บาท/วัน",step:50})}
+      ${field("policy.pauseDays","สมาชิกพักได้ปีละ",{unit:"วัน",step:7})}
+    </div></div>
+  </section>`;
+}
+function progCard(p,i,R){
+  const sg = suggestFor(p,R), price=n(p.price);
+  const max = Math.max(sg.mk.price*1.25, sg.fl.target*1.6, price*1.15, 1);
+  const pos = v => Math.max(0,Math.min(100, v/max*100)).toFixed(1)+"%";
+  let st = price < sg.fl.cash ? ["bad","ขาดทุนต่อครั้ง"] : price < sg.fl.target ? ["warn","คืนทุนช้ากว่าเป้า"] : price > sg.mk.price ? ["warn","แพงกว่าตลาด"] : ["good","ราคาดี"];
+  const b = R.st.by[p.id]||{rev:0,profit:0};
+  const perUse = usesOf(p)>0 ? price/usesOf(p) : null, clinic=clinicAvg();
+  return `<article class="prog ${p.on?"":"off"}" data-pid="${p.id}">
+    <div class="prog-head"><div style="min-width:0"><div class="btns" style="gap:6px;margin-bottom:6px">${groupTag(p.group)}<span class="tag ${st[0]}">${st[1]}</span></div>
+      <div class="prog-name">${esc(p.name)}</div><div class="prog-desc">${esc(p.desc||"")}</div></div>
+      <button class="xbtn" data-act="editProgram" data-i="${i}" aria-label="แก้ไขรายละเอียด ${esc(p.name)}" title="แก้ไขรายละเอียด">${ICON.more}</button></div>
+    <div class="prog-controls">
+      <div><span class="field-lab">ราคา (บาท / ${esc(p.per)})</span>${stepper(`programs.${i}.price`, price, {label:"ราคา "+p.name})}</div>
+      <div><span class="field-lab">${p.per==="เดือน"?"สมาชิก (คน)":"ครั้ง / เดือน"}${clubSeats(p.id)?` +${fmt(clubSeats(p.id))} สโมสร`:""}</span>${stepper(`programs.${i}.qty`, n(p.qty), {step:1,label:"จำนวน "+p.name})}</div>
+    </div>
+    <div>
+      <div class="meter" style="--floor:${pos(sg.fl.target)};--mkt:${pos(sg.mk.price)}" aria-hidden="true">
+        <div class="rail"></div>
+        <div class="mk" style="left:${pos(sg.fl.target)}"><span>คุ้มทุน</span></div>
+        <div class="mk" style="left:${pos(sg.mk.price)}"><span>ตลาด</span></div>
+        <div class="me" style="left:${pos(price)}"></div>
+      </div>
+      <div class="facts-row"><span>คุ้มทุน <b>${baht(sg.fl.target)}</b></span><span>ตลาด <b>${baht(sg.mk.price)}</b></span>${perUse!=null?`<span>ตกครั้งละ <b>${baht(perUse)}</b>${perUse<clinic?` · ถูกกว่าคลินิก ${pct(1-perUse/clinic)}`:""}</span>`:""}</div>
+    </div>
+    <div class="chips">
+      <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${sg.value}">แนะนำ ${baht(sg.value)}</button>
+      <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${nicePrice(sg.mk.price)}">ตามตลาด ${baht(nicePrice(sg.mk.price))}</button>
+      <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${sg.byMarket}">ตลาด −${fmt(sg.disc)}% ${baht(sg.byMarket)}</button>
+      <button class="chip soft" data-act="setPrice" data-i="${i}" data-v="${nicePrice(sg.fl.target)}">ต่ำสุดคุ้มทุน ${baht(nicePrice(sg.fl.target))}</button>
+      <button class="chip soft" data-act="showBasis" data-i="${i}">ที่มาราคาตลาด</button>
+    </div>
+    <div class="result-row"><span>รายได้ / เดือน <b class="num">${p.on?baht(b.rev):"ปิดขาย"}</b></span><span>กำไร / เดือน <b class="num" style="color:${b.profit<0?"var(--bad)":"inherit"}">${p.on?baht(b.profit):"-"}</b></span></div>
+  </article>`;
+}
+
+function plData(){
+  const clinic=clinicAvg(), hid=S.sheet.hidden||[];
+  return Object.keys(GROUPS).map(g=>({g, items:S.programs.filter(p=>p.on && p.group===g && !hid.includes(p.id)).map(p=>{
+    const pm=n(S.whatIf.price)/100, price=Math.round(n(p.price)*pm);
+    const per = usesOf(p)>0 ? price/usesOf(p) : null;
+    return {p, price, per, save: per!=null && per<clinic ? 1-per/clinic : null};
+  })})).filter(x=>x.items.length);
+}
+function priceListHTML(){
+  const sh=S.sheet, pol=S.policy, clinic=clinicAvg(), data=plData();
+  return `<div id="pl" class="pl ${sh.layout==="story"?"story":""} ${sh.dark?"dark":""}">
+    <div class="pl-head">
+      <div class="pl-brand"><span class="brand-mark"><i></i><i></i><i></i></span>Normatec Recovery</div>
+      <div class="pl-title">${esc(sh.title)}</div>
+      <div class="pl-sub">${esc(sh.sub)}</div>
+      <div class="pl-date">ราคา ณ วันที่ ${todayTH()}</div>
+    </div>
+    <div class="pl-body">${data.map(({g,items})=>`<div class="pl-group"><h4>${GROUPS[g].label}<span>${GROUPS[g].desc}</span></h4>
+      ${items.map(it=>`<div class="pl-item"><div class="n">${esc(it.p.name)}</div>
+        <div class="p">฿${fmt(it.price)}<small>ต่อ${esc(it.p.per)}${n(it.p.minTerm)>1?` · ขั้นต่ำ ${fmt(it.p.minTerm)} เดือน`:""}</small></div>
+        <div class="d">${esc(it.p.desc||"")}</div>
+        ${sh.showSave && it.per!=null ? `<div class="save">ตกครั้งละ ฿${fmt(Math.round(it.per))}${it.save!=null?` · <b>ถูกกว่าคลินิก ${pct(it.save)}</b>`:""}</div>`:""}
+      </div>`).join("")}</div>`).join("") || `<p style="opacity:.6">ยังไม่มีโปรแกรมที่เลือกแสดง</p>`}</div>
+    ${sh.showCond?`<div class="pl-cond"><b>เงื่อนไข</b>
+      <span>มัดจำ ฿${fmt(pol.deposit)} คืนเต็มจำนวนเมื่อคืนเครื่องสภาพเรียบร้อย · คืนช้าปรับ ฿${fmt(pol.lateFee)} / วัน</span>
+      <span>สมาชิกรายเดือนพักได้ปีละ ${fmt(pol.pauseDays)} วัน · ถ้าตัดสินใจซื้อเครื่อง นำค่าเช่าที่จ่ายแล้ว ${fmt(pol.rtoCreditPct)}% มาเป็นส่วนลด</span>
+      <span>ผู้มีภาวะลิ่มเลือด ขาอักเสบหรือติดเชื้อ หรือตั้งครรภ์ ควรปรึกษาแพทย์ก่อนใช้ · ราคาเทียบคลินิกในกรุงเทพฯ เฉลี่ย ฿${fmt(Math.round(clinic))} / 30 นาที</span></div>`:""}
+    <div class="pl-foot"><span>${esc(sh.contact)}</span><span>${esc(sh.phone||"")}</span></div>
+  </div>`;
+}
+function pSheet(){
+  const sh=S.sheet;
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Price List</div><h1>ใบราคา</h1>
+    <p class="lead">ใบรายการโปรแกรมสำหรับส่งให้ลูกค้าหรือสโมสร ใช้ราคาที่ตั้งไว้ ณ ตอนนี้ กดบันทึกเป็นรูป PDF หรือ Excel ได้ทันที</p></div></div>
+  <div class="card flat">
+    <div class="btns">
+      <button class="btn" data-act="exp" data-f="png">${ICON.dl} รูปภาพ</button>
+      <button class="btn ghost" data-act="exp" data-f="pdf">${ICON.dl} PDF</button>
+      <button class="btn ghost" data-act="exp" data-f="xlsx">${ICON.dl} Excel</button>
+      <button class="btn ghost" data-act="exp" data-f="csv">${ICON.dl} CSV</button>
+      ${!IN_CLAUDE?`<button class="btn ghost" data-act="exp" data-f="share" id="shareBtn">${ICON.share} แชร์</button><button class="btn ghost hide-sm" data-act="print">พิมพ์</button>`:""}
+    </div>
+    <div class="scroll-x">
+      <button class="chip" data-act="sheetOpt" data-k="layout" data-v="a4" aria-pressed="${sh.layout!=="story"}">แนวตั้ง A4</button>
+      <button class="chip" data-act="sheetOpt" data-k="layout" data-v="story" aria-pressed="${sh.layout==="story"}">สตอรี่ IG / LINE</button>
+      <button class="chip" data-act="sheetOpt" data-k="dark" data-v="${!sh.dark}" aria-pressed="${!!sh.dark}">พื้นดำ</button>
+      <button class="chip" data-act="sheetOpt" data-k="showSave" data-v="${!sh.showSave}" aria-pressed="${!!sh.showSave}">แสดงความคุ้ม</button>
+      <button class="chip" data-act="sheetOpt" data-k="showCond" data-v="${!sh.showCond}" aria-pressed="${!!sh.showCond}">แสดงเงื่อนไข</button>
+      <button class="chip" data-act="sheetText">แก้ข้อความ / ช่องทางติดต่อ</button>
+    </div>
+    <div class="scroll-x" aria-label="เลือกโปรแกรมที่แสดง">${S.programs.filter(p=>p.on).map(p=>`<button class="chip" data-act="sheetToggle" data-id="${p.id}" aria-pressed="${!(sh.hidden||[]).includes(p.id)}">${esc(p.name)}</button>`).join("")}</div>
+  </div>
+  <div class="pl-wrap">${priceListHTML()}</div>
+  </section>`;
+}
+
+function pClubs(R){
+  const list = S.clubs.map((c,i)=>({c,i})).filter(({c})=>flt.clubStatus==="all"||c.status===flt.clubStatus);
+  const total=S.clubs.length||1;
+  const pPrice = c => { const p=progById(c.programId); return p? n(p.price)*n(S.whatIf.price)/100 : 0; };
+  const pend=S.clubs.filter(c=>c.status!=="won"&&c.status!=="lost");
+  const exp = pend.reduce((a,c)=>a+n(c.seats)*n(c.prob)/100*pPrice(c),0);
+  const won = S.clubs.filter(c=>c.status==="won");
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Customers & Clubs</div><h1>ลูกค้า / สโมสร</h1>
+    <p class="lead">แตะชื่อเพื่อแก้ไข กดปุ่มสถานะเพื่อเลื่อนขั้น เมื่อเป็น "ลูกค้าแล้ว" ที่นั่งจะนับเข้ารายได้อัตโนมัติ</p></div>
+    <button class="btn" data-act="addClub">+ เพิ่มสโมสร</button></div>
+  <div class="big3">
+    <div class="bigstat"><span class="l">สโมสรทั้งหมด</span><span class="v num">${fmt(S.clubs.length)}</span><span class="s">ลูกค้าแล้ว ${won.length} · กำลังคุย ${pend.length}</span></div>
+    <div class="bigstat"><span class="l">ที่นั่งที่นับเข้ารายได้แล้ว</span><span class="v num">${fmt(won.reduce((a,c)=>a+n(c.seats),0))}</span><span class="s">จากสโมสรที่เป็นลูกค้าแล้ว</span></div>
+    <div class="bigstat"><span class="l">รายได้ที่รออยู่ / เดือน</span><span class="v num">${baht(exp)}</span><span class="s">ถ้าปิดการขายได้ตามโอกาสที่ใส่</span></div>
+  </div>
+  <div class="card"><h3>สถานะการขาย</h3>
+    <div class="seg">${STATUS.map(s=>`<span style="width:${(S.clubs.filter(c=>c.status===s.k).length/total*100).toFixed(1)}%;background:var(${s.color})" title="${s.label}"></span>`).join("")}</div>
+    <div class="legend">${STATUS.map(s=>`<span><i class="dot" style="background:var(${s.color})"></i>${s.label} ${S.clubs.filter(c=>c.status===s.k).length}</span>`).join("")}</div></div>
+  <div class="scroll-x" role="group" aria-label="กรองสถานะ">
+    <button class="chip" data-flt="clubStatus" data-v="all" aria-pressed="${flt.clubStatus==="all"}">ทั้งหมด</button>
+    ${STATUS.map(s=>`<button class="chip" data-flt="clubStatus" data-v="${s.k}" aria-pressed="${flt.clubStatus===s.k}">${s.label}</button>`).join("")}
+  </div>
+  ${list.length?`<div class="rows">${list.map(({c,i})=>{
+    const s=STATUS.find(x=>x.k===c.status)||STATUS[0], p=progById(c.programId);
+    return `<div class="row" data-act="editClub" data-i="${i}" role="button" tabindex="0">
+      <div><div class="t">${esc(c.name)}</div><div class="s">${esc(c.type||"")}${c.area?" · "+esc(c.area):""}${p?" · "+esc(p.name):""}</div></div>
+      <div style="display:grid;gap:4px;justify-items:end"><button class="tag" style="border:0;cursor:pointer;background:color-mix(in srgb, var(${s.color}) 18%, transparent)" data-act="nextStatus" data-i="${i}" title="กดเพื่อเลื่อนสถานะ">${s.label} ›</button>
+      <span class="rs">${n(c.seats)?fmt(c.seats)+" ที่นั่ง · "+baht(n(c.seats)*pPrice(c))+"/ด.":"ยังไม่ใส่ที่นั่ง"}</span></div></div>`;}).join("")}</div>`
+  : `<div class="empty">${S.clubs.length?"ไม่มีสโมสรในสถานะนี้":"ยังไม่มีรายชื่อ เริ่มจากชมรมวิ่ง ยิม HYROX หรือชมรมกีฬามหาวิทยาลัย"}<button class="btn sm" data-act="addClub">+ เพิ่มสโมสร</button></div>`}
+  </section>`;
+}
+
+function marketSummary(){
+  const rents=S.refs.filter(r=>r.kind==="rent"&&r.bench!==false&&n(r.price)>0&&refDays(r));
+  const by = (lo,hi)=>rents.filter(r=>refDays(r)>=lo&&refDays(r)<=hi).map(refPerDay);
+  const ses=S.refs.filter(r=>r.kind==="session"&&n(r.price)>0);
+  const ret=S.refs.filter(r=>r.kind==="retail"&&n(r.price)>0&&r.country==="ไทย").map(refTHB);
+  return [
+    ["คลินิกในไทย","ต่อ 30 นาที", avg(ses.filter(r=>r.inAvg).map(refPer30)), ses.filter(r=>r.inAvg).length],
+    ["บริการต่างประเทศ","ต่อ 30 นาที", median(ses.filter(r=>r.country!=="ไทย").map(refPer30).filter(Boolean)), ses.filter(r=>r.country!=="ไทย").length],
+    ["เช่า 1–2 วัน","ต่อวัน", median(by(1,2)), by(1,2).length],
+    ["เช่าราวสัปดาห์","ต่อวัน", median(by(6,20)), by(6,20).length],
+    ["เช่ารายเดือน","ต่อเดือน", median(by(21,999))*30, by(21,999).length],
+    ["ซื้อเครื่องในไทย","ต่อเครื่อง", median(ret), ret.length]
+  ];
+}
+function pMarket(){
+  const list=S.refs.map((r,i)=>({r,i})).filter(({r})=>(flt.refScope==="all"||(flt.refScope==="th"?r.country==="ไทย":r.country!=="ไทย"))&&(flt.refKind==="all"||r.kind===flt.refKind));
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Market Research</div><h1>ข้อมูลตลาด</h1>
+    <p class="lead">ราคาจากไทยและต่างประเทศ แปลงเป็นบาทให้แล้ว ราคาในหน้าตั้งราคาใช้ข้อมูลชุดนี้ เพิ่มหรือแก้ได้ทุกเมื่อ</p></div>
+    <button class="btn" data-act="addRef">+ เพิ่มแหล่งอ้างอิง</button></div>
+  <div class="grid3">${marketSummary().map(([t,u,v,c])=>`<div class="bigstat"><span class="l">${t}</span><span class="v num">${v?baht(v):"-"}</span><span class="s">${u} · จาก ${c} แหล่ง</span></div>`).join("")}</div>
+  <div class="card flat"><div class="btns" style="justify-content:space-between"><span style="font-size:14px">ในไทยยังไม่มีเจ้าที่ประกาศราคาเช่ารายวัน จึงใช้ราคาต่างประเทศ × <b>${fmt(S.market.localFactor)}%</b> เป็นตัวเทียบ</span>
+    <span class="btns">${[50,60,70,80,100].map(v=>`<button class="chip" data-act="setLocal" data-v="${v}" aria-pressed="${n(S.market.localFactor)===v}">${v}%</button>`).join("")}</span></div></div>
+  <div class="grid2">
+    <div class="card"><h3>เช่ายิ่งนาน ยิ่งถูกต่อวัน</h3><p class="hint">จุดเทา = คู่แข่ง · จุดดำ = ของเรา · แกนนอนคือจำนวนวันที่เช่า</p><div class="chart tall"><canvas id="chCurve" role="img" aria-label="กราฟราคาเช่าต่อวันตามระยะเวลา"></canvas></div></div>
+    <div class="card"><h3>บริการต่อ 30 นาที</h3><p class="hint">น้ำเงิน = ไทย · เทา = ต่างประเทศ · ดำ = ของเรา</p><div class="chart tall"><canvas id="chSes" role="img" aria-label="กราฟราคาบริการต่อ 30 นาที"></canvas></div></div>
+  </div>
+  <div class="scroll-x">
+    ${[["all","ทั้งหมด"],["th","ไทย"],["ab","ต่างประเทศ"]].map(([k,l])=>`<button class="chip" data-flt="refScope" data-v="${k}" aria-pressed="${flt.refScope===k}">${l}</button>`).join("")}
+    <span style="flex:none;width:8px"></span>
+    <button class="chip" data-flt="refKind" data-v="all" aria-pressed="${flt.refKind==="all"}">ทุกประเภท</button>
+    ${Object.entries(REF_KINDS).map(([k,l])=>`<button class="chip" data-flt="refKind" data-v="${k}" aria-pressed="${flt.refKind===k}">${l}</button>`).join("")}
+  </div>
+  ${list.length?`<div class="rows">${list.map(({r,i})=>{
+    const norm = r.kind==="rent"&&refPerDay(r)? baht(refPerDay(r)) : r.kind==="session"&&refPer30(r)? baht(refPer30(r)) : n(r.price)? baht(refTHB(r)) : "-";
+    const unit = r.kind==="rent"?"ต่อวัน":r.kind==="session"?"ต่อ 30 นาที":r.kind==="retail"?"ต่อเครื่อง":"";
+    return `<div class="row" data-act="editRef" data-i="${i}" role="button" tabindex="0">
+      <div><div class="t">${esc(r.name)}</div><div class="s">${esc(r.item||"")} · ${esc(r.country||"")}${n(r.price)?` · ${fmt(r.price,2)} ${esc(r.currency)}${r.unit!=="item"?` / ${fmt(r.qty)} ${UNITS[r.unit]||""}`:""}`:""}${r.inAvg?" · ใช้หาค่าเฉลี่ย":""}${r.kind==="rent"&&r.bench===false?" · ไม่ใช้เทียบ":""}</div>
+      ${r.note?`<div class="s">${esc(r.note)}</div>`:""}${r.url?`<a class="s" href="${esc(r.url)}" target="_blank" rel="noopener" data-stop="1">เปิดแหล่งที่มา ↗</a>`:""}</div>
+      <div><div class="r num">${norm}</div><div class="rs">${unit} · ${REF_KINDS[r.kind]||""}</div></div></div>`;}).join("")}</div>`
+  : `<div class="empty">ไม่มีข้อมูลตามตัวกรองนี้<button class="btn sm" data-act="addRef">+ เพิ่มแหล่งอ้างอิง</button></div>`}
+  </section>`;
+}
+
+function pCosts(R){
+  const st=R.st, rev=Math.max(1,st.rev);
+  const flow=[["ค่าส่ง / ทำความสะอาด",st.vc,"--c5"],["ส่วนแบ่งให้สถานที่",st.sh,"--c4"],["กันเงินซ่อม + ค่าธรรมเนียม",st.loss,"--c2"],["ค่าใช้จ่ายคงที่",st.fixed,"--c3"],["ภาษี",st.tax,"--c5"],["เหลือเป็นกำไร",st.net,"--good"]];
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Costs</div><h1>ต้นทุน</h1><p class="lead">ตัวเลขที่ใช้บ่อยอยู่ด้านบน ส่วนรายละเอียดอื่นกดเปิดดูได้</p></div></div>
+  <div class="card"><h3>เครื่อง</h3><div class="fields">
+    ${field("machine.count","จำนวนเครื่อง",{unit:"เครื่อง",step:1,min:0})}
+    ${field("machine.price","ราคาซื้อต่อเครื่อง",{unit:"บาท",step:500,help:"นำเข้าเอง ≈ 34,000 · ตัวแทน 39,999"})}
+    ${field("machine.accessories","อุปกรณ์เสริมต่อเครื่อง",{unit:"บาท",step:500})}
+    ${field("ops.targetMonths","เป้าคืนทุน",{unit:"เดือน",step:1})}
+  </div>
+  <div class="btns"><span class="hint">ราคาเครื่องด่วน:</span>${[[34000,"นำเข้า 34,000"],[34199,"Play Strong 34,199"],[39999,"ตัวแทน 39,999"],[45999,"ราคาเต็ม 45,999"]].map(([v,l])=>`<button class="chip" data-act="setMachinePrice" data-v="${v}" aria-pressed="${n(S.machine.price)===v}">${l}</button>`).join("")}</div></div>
+
+  <div class="big3">
+    <div class="bigstat"><span class="l">ลงทุนครั้งแรก</span><span class="v num">${out("inv")}</span><span class="s">รวมค่าเริ่มต้น ${baht(R.setup)}</span></div>
+    <div class="bigstat"><span class="l">ค่าใช้จ่ายคงที่ / เดือน</span><span class="v num">${out("fix")}</span><span class="s">รวมเงินเก็บเปลี่ยนปลอกขา ${baht(R.sleeveM)}</span></div>
+    <div class="bigstat"><span class="l">เครื่องที่ควรมี</span><span class="v num">${out("need")}</span><span class="s">ใช้เครื่อง ${out("util")} ของเวลา</span></div>
+  </div>
+
+  <div class="card"><h3>รายได้ 100 บาท ไปไหนบ้าง</h3>
+    <div class="hbar">${flow.map(([t,v,c])=>`<div class="hbar-row"><span class="t">${t}</span><span class="v num">${fmt(v/rev*100,1)} บาท</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(0,Math.min(100,v/rev*100)).toFixed(1)}%;background:var(${t==="เหลือเป็นกำไร"&&v<0?"--bad":c})"></div></div></div>`).join("")}</div></div>
+
+  <div class="grid2">
+    <div class="card"><div class="page-title"><h3>จ่ายครั้งเดียวตอนเริ่ม</h3><button class="btn ghost sm" data-act="addRow" data-list="setup">+ เพิ่ม</button></div>${listRows("setup")}</div>
+    <div class="card"><div class="page-title"><h3>จ่ายทุกเดือน</h3><button class="btn ghost sm" data-act="addRow" data-list="monthly">+ เพิ่ม</button></div>${listRows("monthly")}</div>
+  </div>
+
+  <details class="card"><summary><h3 style="display:inline">ตั้งค่าเพิ่มเติม</h3></summary><div style="display:grid;gap:16px;margin-top:14px">
+    <div class="fields">
+      ${field("ops.cleaning","ทำความสะอาดต่อครั้ง",{unit:"บาท",step:10})}
+      ${field("ops.tripCost","ค่าส่ง 1 เที่ยว",{unit:"บาท",step:10})}
+      ${field("ops.deliveryShare","ลูกค้าที่ให้ไปส่ง-รับ",{unit:"%",step:10})}
+      ${field("ops.consumable","ของใช้ต่อรอบบริการ",{unit:"บาท",step:5})}
+      ${field("ops.damagePct","กันเงินซ่อม",{unit:"% ของรายได้",step:1,help:"ประกันมักไม่คุ้มครองการใช้เชิงพาณิชย์"})}
+      ${field("ops.payFeePct","ค่าธรรมเนียมรับเงิน",{unit:"%",step:.5})}
+      ${field("ops.taxPct","ภาษีจากกำไร",{unit:"%",step:1})}
+      ${field("machine.maxUtil","ใช้เครื่องได้สูงสุด",{unit:"% ของเวลา",step:5})}
+      ${field("machine.sessionMin","1 รอบบริการ + ทำความสะอาด",{unit:"นาที",step:5})}
+      ${field("machine.openHours","จุดบริการเปิดวันละ",{unit:"ชั่วโมง",step:1})}
+      ${field("machine.sleeveCost","ค่าเปลี่ยนปลอกขา",{unit:"บาท",step:500})}
+      ${field("machine.sleeveEvery","เปลี่ยนปลอกขาทุก",{unit:"เดือน",step:1})}
+      ${field("machine.lifeMonths","อายุเครื่อง",{unit:"เดือน",step:6})}
+      ${field("machine.resalePct","ขายต่อได้",{unit:"% ของราคา",step:5})}
+      ${field("ops.rampStart","เดือนแรกได้ลูกค้า",{unit:"% ของเป้า",step:10})}
+      ${field("ops.rampMonths","ลูกค้าครบในเดือนที่",{unit:"เดือน",step:1})}
+      ${field("ops.growthPct","ลูกค้าโตต่อเดือน",{unit:"%",step:1})}
+      ${field("ops.horizon","ดูแผนล่วงหน้า",{unit:"เดือน",step:6})}
+    </div></div></details>
+
+  <div class="card"><div class="page-title"><h3>ตารางรายเดือน</h3><button class="btn ghost sm" data-act="exp" data-f="planxlsx">${ICON.dl} Excel</button></div>
+    <div class="tbl-wrap" data-o="monthTable"></div></div>
+  </section>`;
+}
+function listRows(list){
+  return S[list].length ? `<div style="display:grid;gap:10px">${S[list].map((x,i)=>`<div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 36px;gap:8px;align-items:center">
+    <input type="text" aria-label="ชื่อรายการ" data-k="${list}.${i}.name" value="${esc(x.name)}">
+    ${stepper(`${list}.${i}.amount`, n(x.amount), {sm:true,step:500,label:"จำนวนเงิน"})}
+    <button class="xbtn" data-act="del" data-list="${list}" data-i="${i}" aria-label="ลบรายการ">×</button></div>`).join("")}</div>` : `<p class="hint">ยังไม่มีรายการ</p>`;
+}
+
+function pConfig(){
+  const ua=navigator.userAgent, ios=/iPhone|iPad|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1), mac=/Macintosh/.test(ua)&&!ios, safari=/Safari/.test(ua)&&!/Chrome|CriOS|Edg|FxiOS/.test(ua);
+  return `<section class="view">
+  <div class="page-title"><div><div class="eyebrow">Settings</div><h1>ตั้งค่า</h1></div></div>
+  ${!IN_CLAUDE?`<div class="card"><h3>ติดตั้งเป็นแอป</h3>
+    ${isStandalone()?`<p class="hint">กำลังใช้งานแบบแอปอยู่แล้ว ✓</p>`:""}
+    <div class="grid3">
+      <div class="card flat"><b>iPhone / iPad</b><p class="hint">เปิดใน Safari → กดปุ่มแชร์ ${ICON.share.replace('<svg','<svg style="width:14px;height:14px;vertical-align:-2px"')} → "เพิ่มไปยังหน้าจอโฮม"</p>${ios?`<span class="tag good">เครื่องนี้</span>`:""}</div>
+      <div class="card flat"><b>Mac (Safari)</b><p class="hint">เมนู File (ไฟล์) → "Add to Dock" (เพิ่มไปยัง Dock) แอปจะเปิดเป็นหน้าต่างแยก</p>${mac&&safari?`<span class="tag good">เครื่องนี้</span>`:""}</div>
+      <div class="card flat"><b>Chrome / Edge</b><p class="hint">กดไอคอนติดตั้งที่แถบที่อยู่ หรือปุ่มด้านล่าง</p><button class="btn sm" data-act="install" id="installBtn" ${window.__bip?"":"hidden"}>ติดตั้งแอป</button></div>
+    </div></div>`:""}
+  <div class="card"><h3>ย้ายข้อมูลไปอีกเครื่อง</h3>
+    <p class="hint">${IN_CLAUDE?"ข้อมูลบันทึกในบัญชีอัตโนมัติ":"ข้อมูลเก็บอยู่ในเครื่องนี้ ถ้าจะใช้ต่อบนอีกเครื่อง ให้ส่งลิงก์ข้อมูลหรือไฟล์สำรองไปเปิด"}</p>
+    <div class="btns">
+      ${!IN_CLAUDE?`<button class="btn" data-act="shareLink">${ICON.share} ส่งลิงก์ข้อมูลไปเครื่องอื่น</button>`:""}
+      <button class="btn ghost" data-act="exp" data-f="json">${ICON.dl} ไฟล์สำรอง (.json)</button>
+      <label class="btn ghost" style="cursor:pointer">นำเข้าไฟล์สำรอง<input type="file" accept=".json,application/json" id="importFile" hidden></label>
+    </div>
+    <textarea id="linkBox" hidden readonly aria-label="ลิงก์ข้อมูล"></textarea></div>
+  <div class="card"><h3>อัตราแลกเปลี่ยน (1 หน่วย = กี่บาท)</h3><p class="hint">ใช้แปลงราคาต่างประเทศ ควรปรับให้ตรงวันที่ใช้งาน</p>
+    <div class="fields">${Object.keys(S.fx).filter(k=>k!=="THB").map(k=>field("fx."+k,k,{unit:"บาท",step:.5})).join("")}</div></div>
+  <div class="card"><h3>เริ่มใหม่</h3><p class="hint">คืนค่าตัวเลขเป็นค่าตั้งต้น รายชื่อสโมสรและข้อมูลตลาดยังอยู่</p>
+    <div class="btns"><button class="btn danger" data-act="askReset">คืนค่าตัวเลข</button></div>
+    <div id="resetConfirm" hidden class="banner"><span>ยืนยันคืนค่าตัวเลขทั้งหมด?</span><span class="btns"><button class="btn sm" data-act="doReset">ยืนยัน</button><button class="btn ghost sm" data-act="cancelReset">ยกเลิก</button></span></div></div>
+  </section>`;
+}
+
+/* ================= sheet editors ================= */
+function editProgram(i){
+  const pre=`programs.${i}`, p=S.programs[i];
+  openSheet("แก้ไขโปรแกรม", `
+    ${field(pre+".name","ชื่อโปรแกรม",{type:"text",wide:true})}
+    ${field(pre+".desc","คำอธิบาย (แสดงในใบราคา)",{type:"text",wide:true})}
+    <div class="fields">
+      ${field(pre+".group","ประเภท",{type:"select",options:Object.entries(GROUPS).map(([k,g])=>[k,g.label])})}
+      ${field(pre+".per","คิดเงินต่อ",{type:"select",options:[["ครั้ง","ครั้ง"],["เดือน","เดือน"]]})}
+      ${field(pre+".useType","ใช้เครื่องแบบ",{type:"select",rr:true,options:[["days","ยืมกลับบ้าน (วัน)"],["sessions","มาใช้ที่จุดบริการ (รอบ)"]]})}
+      ${field(pre+".use", p.useType==="sessions"?"จำนวนรอบที่ได้":"เครื่องไม่อยู่กี่วัน (รวมรับ-ส่ง)",{unit:p.useType==="sessions"?"รอบ":"วัน",step:p.useType==="sessions"?1:.5})}
+      ${p.useType==="days"?field(pre+".uses","ลูกค้าได้ใช้จริง",{unit:"ครั้ง",step:1}):""}
+      ${field(pre+".handovers","ส่ง-รับเครื่องต่อหน่วย",{unit:"รอบ",step:1,help:"ใช้คิดค่าส่งและทำความสะอาด"})}
+      ${field(pre+".revShare","แบ่งให้สถานที่",{unit:"%",step:5})}
+      ${field(pre+".minTerm","สัญญาขั้นต่ำ",{unit:"เดือน",step:1})}
+    </div>
+    ${field(pre+".on","เปิดขายโปรแกรมนี้",{type:"check"})}`,
+    `<button class="btn danger sm" data-act="delProgram" data-i="${i}">ลบโปรแกรม</button><button class="btn ghost sm" data-act="dupProgram" data-i="${i}">ทำสำเนา</button><button class="btn sm" data-act="closeSheet">เสร็จ</button>`,
+    ()=>render(false));
+}
+function addProgramSheet(){
+  openSheet("เพิ่มโปรแกรม", `<p class="hint">เลือกแบบที่ใกล้ที่สุด แล้วค่อยปรับราคาและรายละเอียด</p><div class="tpl">
+    ${Object.entries(GROUPS).map(([k,g])=>`<button data-act="addProgramType" data-g="${k}"><span>${groupTag(k)}</span><b>${g.label}</b><span class="hint">${g.desc}</span></button>`).join("")}</div>`);
+}
+function editClub(i){
+  const pre=`clubs.${i}`;
+  openSheet("แก้ไขสโมสร", `
+    ${field(pre+".name","ชื่อสโมสร / ยิม",{type:"text",wide:true})}
+    <div class="fields">
+      ${field(pre+".type","ประเภท",{type:"select",options:CLUB_TYPES.map(t=>[t,t])})}
+      ${field(pre+".area","ย่าน",{type:"text"})}
+      ${field(pre+".status","สถานะ",{type:"select",rr:true,options:STATUS.map(s=>[s.k,s.label])})}
+      ${field(pre+".programId","โปรแกรมที่เสนอ",{type:"select",options:S.programs.map(p=>[p.id,p.name])})}
+      ${field(pre+".seats","ที่นั่งที่คาดว่าจะขายได้",{unit:"คน",step:1})}
+      ${field(pre+".members","สมาชิกทั้งหมด (ถ้ารู้)",{unit:"คน",step:5})}
+      ${field(pre+".prob","โอกาสปิดการขาย",{unit:"%",step:5})}
+      ${field(pre+".contact","ผู้ติดต่อ / ช่องทาง",{type:"text"})}
+    </div>
+    ${field(pre+".note","บันทึก",{type:"text",wide:true})}
+    ${field(pre+".url","ลิงก์อ้างอิง",{type:"url",wide:true,ph:"https://"})}`,
+    `<button class="btn danger sm" data-act="delItem" data-list="clubs" data-i="${i}">ลบ</button><button class="btn sm" data-act="closeSheet">เสร็จ</button>`,
+    ()=>render(false));
+}
+function editRef(i){
+  const pre=`refs.${i}`, r=S.refs[i];
+  openSheet("แหล่งอ้างอิง", `
+    ${field(pre+".name","ผู้ให้บริการ / ร้าน",{type:"text",wide:true})}
+    ${field(pre+".item","รายการ",{type:"text",wide:true})}
+    <div class="fields">
+      ${field(pre+".kind","ประเภท",{type:"select",rr:true,options:Object.entries(REF_KINDS)})}
+      ${field(pre+".country","ประเทศ",{type:"text"})}
+      <div class="f"><label>ราคา</label><input class="plain" type="number" inputmode="decimal" data-k="${pre}.price" data-t="n" value="${esc(r.price)}"></div>
+      ${field(pre+".currency","สกุลเงิน",{type:"select",options:Object.keys(S.fx).map(k=>[k,k])})}
+      ${field(pre+".qty","จำนวน",{step:1,help:"เช่น 2 สัปดาห์ ใส่ 2"})}
+      ${field(pre+".unit","หน่วย",{type:"select",rr:true,options:Object.entries(UNITS)})}
+      ${r.unit==="session"?field(pre+".minutes","นาทีต่อรอบ",{step:15}):""}
+    </div>
+    ${r.kind==="session"?field(pre+".inAvg","ใช้หาค่าเฉลี่ยราคาคลินิกในไทย",{type:"check"}):""}
+    ${r.kind==="rent"?field(pre+".bench","ใช้เป็นราคาเทียบในหน้าตั้งราคา",{type:"check"}):""}
+    ${field(pre+".note","หมายเหตุ",{type:"text",wide:true})}
+    ${field(pre+".url","ลิงก์แหล่งที่มา",{type:"url",wide:true,ph:"https://"})}
+    ${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">เปิดแหล่งที่มา ↗</a>`:""}`,
+    `<button class="btn danger sm" data-act="delItem" data-list="refs" data-i="${i}">ลบ</button><button class="btn sm" data-act="closeSheet">เสร็จ</button>`,
+    ()=>render(false));
+}
+function basisSheet(i){
+  const p=S.programs[i], R=compute(), sg=suggestFor(p,R);
+  openSheet("ที่มาของราคา", `
+    <div class="prog-name">${esc(p.name)}</div>
+    <div class="card flat"><b>ราคาตลาด ${baht(sg.mk.price)}</b><span class="hint">${esc(sg.mk.basis)}</span></div>
+    <div class="card flat"><b>ต่ำสุดที่ยังคืนทุนใน ${fmt(S.ops.targetMonths)} เดือน ${baht(sg.fl.target)}</b><span class="hint">ค่าส่ง/ทำความสะอาด ${baht(varUnit(p))} + ค่าเครื่องและค่าใช้จ่ายคงที่ที่หารลงโปรแกรมนี้ ${baht(machineDays(p)*R.costPerMD)} แล้วเผื่อส่วนแบ่ง/ค่าซ่อม</span>
+      <span class="hint">ถ้าต่ำกว่า ${baht(sg.fl.cash)} จะขาดทุนทันทีทุกครั้งที่ขาย</span></div>
+    <h3 style="font-size:14px">แหล่งที่ใช้เทียบ (${sg.mk.refs.length})</h3>
+    <div class="rows">${sg.mk.refs.map(r=>`<div class="row" style="cursor:default"><div><div class="t">${esc(r.name)}</div><div class="s">${esc(r.item||"")} · ${esc(r.country)}</div>${r.url?`<a class="s" href="${esc(r.url)}" target="_blank" rel="noopener">เปิดแหล่งที่มา ↗</a>`:""}</div><div class="r num">${r.kind==="rent"?baht(refPerDay(r))+"/วัน":baht(refPer30(r))+"/30น."}</div></div>`).join("")||`<div class="row">ยังไม่มีข้อมูล เพิ่มได้ที่หน้าตลาด</div>`}</div>`,
+    `<button class="btn ghost sm" data-act="goMarket">ไปหน้าตลาด</button><button class="btn sm" data-act="closeSheet">ปิด</button>`);
+}
+function rulesSheet(){
+  openSheet("ตั้งค่าการคิดราคา", `<div class="fields">
+    ${field("market.discount","เช่า: ถูกกว่าตลาด",{unit:"%",step:5})}
+    ${field("market.sessionDiscount","บริการต่อรอบ: ถูกกว่าคลินิก",{unit:"%",step:5,help:"คลินิกในเมืองแพง จึงลดมากกว่า"})}
+    ${field("market.markup","ต้นทุน + กำไร",{unit:"%",step:5})}
+    ${field("market.localFactor","ปรับราคาต่างประเทศให้เป็นราคาไทย",{unit:"%",step:5,help:"100% = ใช้ราคาต่างประเทศตรง ๆ"})}
+    ${field("ops.targetMonths","เป้าคืนทุน",{unit:"เดือน",step:1})}
+    ${field("value.clinicPrice","ราคาคลินิก / 30 นาที",{unit:"บาท",step:50,help:"0 = ใช้ค่าเฉลี่ยจากข้อมูลตลาด"})}
+  </div>`, `<button class="btn sm" data-act="closeSheet">เสร็จ</button>`, ()=>render(false));
+}
+function sheetTextSheet(){
+  openSheet("ข้อความในใบราคา", `
+    ${field("sheet.title","หัวข้อ",{type:"text",wide:true})}
+    ${field("sheet.sub","คำอธิบายสั้น",{type:"text",wide:true})}
+    ${field("sheet.contact","ช่องทางติดต่อ",{type:"text",wide:true,ph:"LINE: @..."})}
+    ${field("sheet.phone","เบอร์โทร / IG",{type:"text",wide:true})}`, `<button class="btn sm" data-act="closeSheet">เสร็จ</button>`, ()=>render(false));
+}
+
+/* ================= outputs + charts ================= */
+function refresh(){
+  const R=compute();
+  const o={
+    wiP: n(S.whatIf.price)+"%", wiD: n(S.whatIf.demand)+"%",
+    netM: baht(R.st.net), payTxt: R.payback==null?"ยังไม่คืนทุน":"เดือนที่ "+Math.ceil(R.payback),
+    inv: baht(R.invest), fix: baht(R.fixed), need: fmt(R.need)+" เครื่อง", util: pct(Math.min(R.util,9.99))
+  };
+  $$("[data-o]").forEach(el=>{ const k=el.dataset.o; if(k in o) el.textContent=o[k]; });
+  const mt=$('[data-o="monthTable"]');
+  if(mt) mt.innerHTML = `<table><thead><tr><th>เดือน</th><th class="r">รายได้</th><th class="r">ค่าใช้จ่าย</th><th class="r">กำไร</th><th class="r">เงินสะสม</th><th class="r">ใช้เครื่อง</th></tr></thead><tbody>${
+    R.series.map(m=>`<tr><td>${m.i}</td><td class="r num">${baht(m.rev)}</td><td class="r num">${baht(m.rev-m.net)}</td><td class="r num">${baht(m.net)}</td><td class="r num" style="color:${m.cum<0?"var(--bad)":"var(--good)"}">${baht(m.cum)}</td><td class="r num">${pct(R.capacity?m.dmd/R.capacity:0)}${m.sold?" ⚠":""}</td></tr>`).join("")}</tbody></table>`;
+  drawCharts(R);
+  return R;
+}
+function baseOpts(extra={}){
+  const muted=cssv("--muted"), line=cssv("--line"), ink=cssv("--ink");
+  const font={family:"IBM Plex Sans Thai"};
+  return Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:450},
+    plugins:{legend:{display:false,labels:{color:ink,font,boxWidth:12}}},
+    scales:{x:{ticks:{color:muted,font},grid:{color:line}},y:{ticks:{color:muted,font},grid:{color:line}}}}, extra);
+}
+const kfmt=v=>Math.abs(v)>=1000?fmt(v/1000,0)+"k":fmt(v,0);
+function upsert(id,cfg){
+  const el=document.getElementById(id); if(!el) return;
+  if(typeof Chart==="undefined"){ el.parentNode.innerHTML=`<p class="hint">โหลดกราฟไม่ได้ (ไม่มีอินเทอร์เน็ต) ตัวเลขยังใช้งานได้</p>`; return; }
+  if(charts[id] && charts[id].canvas===el){ charts[id].data=cfg.data; charts[id].options=cfg.options; charts[id].update(); return; }
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(el,cfg);
+}
+function drawCharts(R){
+  const ink=cssv("--ink"), c2=cssv("--c2"), c5=cssv("--c5"), good=cssv("--good"), bad=cssv("--bad"), muted=cssv("--muted");
+  if(page==="summary"){
+    const o=baseOpts(); o.scales.y.ticks.callback=kfmt; o.scales.x.title={display:true,text:"เดือนที่",color:muted};
+    o.plugins.tooltip={callbacks:{label:c=>"เงินสะสม "+baht(c.parsed.y)}};
+    upsert("chCum",{type:"bar",data:{labels:R.series.map(m=>m.i),datasets:[{data:R.series.map(m=>m.cum),backgroundColor:R.series.map(m=>m.cum<0?bad:good),borderRadius:2}]},options:o});
+  }
+  if(page==="pricing"){
+    const clinic=clinicAvg();
+    const rows=R.progs.filter(x=>x.uses>0).map(x=>({n:x.p.name,v:x.unitPrice/x.uses,c:cssv(GROUPS[x.p.group].color)})).concat([{n:"คลินิก (เฉลี่ย)",v:clinic,c:c5}]).sort((a,b)=>a.v-b.v);
+    const o=baseOpts({indexAxis:"y"}); o.scales.x.ticks.callback=v=>fmt(v,0); o.plugins.tooltip={callbacks:{label:c=>baht(c.parsed.x)+" / ครั้ง"}};
+    upsert("chPerUse",{type:"bar",data:{labels:rows.map(r=>r.n),datasets:[{data:rows.map(r=>r.v),backgroundColor:rows.map(r=>r.c),borderRadius:3}]},options:o});
+  }
+  if(page==="market"){
+    const pts=S.refs.filter(r=>r.kind==="rent"&&n(r.price)>0&&refDays(r)).map(r=>({x:refDays(r),y:refPerDay(r),n:r.name}));
+    const ours=S.programs.filter(p=>p.on&&p.useType==="days"&&p.group!=="club").map(p=>{const d=p.per==="เดือน"?n(p.use):rentalLen(p); return {x:d,y:n(p.price)*n(S.whatIf.price)/100/Math.max(1,d),n:p.name};});
+    const o=baseOpts(); o.scales.x.type="logarithmic"; o.scales.x.title={display:true,text:"จำนวนวันที่เช่า",color:muted};
+    o.scales.x.ticks.callback=v=>[1,2,3,7,14,30].includes(v)?v:""; o.scales.y.title={display:true,text:"บาท / วัน",color:muted};
+    o.plugins.legend.display=true; o.plugins.tooltip={callbacks:{label:c=>`${c.raw.n}: ${baht(c.raw.y)}/วัน (${c.raw.x} วัน)`}};
+    upsert("chCurve",{type:"scatter",data:{datasets:[{label:"คู่แข่ง",data:pts,backgroundColor:c5,pointRadius:6},{label:"ของเรา",data:ours,backgroundColor:ink,pointRadius:7,pointStyle:"rectRot"}]},options:o});
+    const ses=S.refs.filter(r=>r.kind==="session"&&n(r.price)>0).map(r=>({n:r.name+(n(r.qty)>1?" (แพ็ก)":""),v:refPer30(r),c:r.country==="ไทย"?c2:c5}));
+    const ourS=S.programs.filter(p=>p.on&&p.useType==="sessions").map(p=>({n:"ของเรา · "+p.name,v:n(p.price)*n(S.whatIf.price)/100/Math.max(1,n(p.use)),c:ink}));
+    const all=[...ses,...ourS].sort((a,b)=>b.v-a.v);
+    const o2=baseOpts({indexAxis:"y"}); o2.scales.x.ticks.callback=v=>fmt(v,0); o2.scales.y.ticks.autoSkip=false; o2.scales.y.ticks.font={size:11}; o2.plugins.tooltip={callbacks:{label:c=>baht(c.parsed.x)+" / 30 นาที"}};
+    upsert("chSes",{type:"bar",data:{labels:all.map(x=>x.n),datasets:[{data:all.map(x=>x.v),backgroundColor:all.map(x=>x.c),borderRadius:3}]},options:o2});
+  }
+}
+function countUp(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  $$("[data-count]").forEach(el=>{
+    const end=Number(el.dataset.count); if(!isFinite(end)) return;
+    const t0=performance.now(), d=650;
+    const tick=t=>{ const k=Math.min(1,(t-t0)/d), e=1-Math.pow(1-k,3); el.textContent=baht(end*e); if(k<1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+}
+
+/* ================= render ================= */
+function renderNav(){
+  $("#topnav").innerHTML = PAGES.map(p=>`<button data-go="${p.k}" ${p.k===page?'aria-current="page"':""}>${p.label}</button>`).join("");
+  const more = !PAGES.find(p=>p.k===page).bot;
+  $("#botnav").innerHTML = PAGES.filter(p=>p.bot).map(p=>`<button data-go="${p.k}" ${p.k===page?'aria-current="page"':""}>${ICON[p.icon]}<span>${p.label}</span></button>`).join("")
+    + `<button data-act="moreMenu" ${more?'aria-current="page"':""}>${ICON.more}<span>เพิ่มเติม</span></button>`;
+}
+function render(animate){
+  renderNav();
+  const R=compute();
+  Object.keys(charts).forEach(k=>{charts[k].destroy(); delete charts[k];});
+  const html = ({summary:pSummary,pricing:pPricing,sheet:pSheet,clubs:pClubs,market:pMarket,costs:pCosts,config:pConfig}[page]||pSummary)(R);
+  const app=$("#app"), sy=window.scrollY;
+  app.innerHTML=html;
+  const v=$(".view",app);
+  if(animate && v){ $$(":scope > *",v).forEach((el,i)=>el.style.setProperty("--i",Math.min(i,8))); v.classList.add("enter"); }
+  refresh();
+  if(animate){ countUp(); window.scrollTo(0,0); } else window.scrollTo(0,sy);
+  const fi=$("#importFile"); if(fi) fi.addEventListener("change",importFile);
+}
+function go(k){
+  if(!PAGES.some(p=>p.k===k)) k="summary";
+  if(k===page && $("#app").children.length){ window.scrollTo({top:0,behavior:"smooth"}); return; }
+  page=k;
+  try{ history.replaceState(null,"","#"+k); }catch(e){}
+  const doit=()=>render(true);
+  if(document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(doit);
+  else doit();
+}
+
+/* ================= export ================= */
+const loaded={};
+function loadScript(src){
+  if(loaded[src]) return loaded[src];
+  return loaded[src]=new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>{delete loaded[src]; rej(new Error("load"));}; document.head.appendChild(s); });
+}
+async function saveFile(blob, name){
+  if(IN_CLAUDE){
+    try{
+      const d=await window.claude.use("downloads");
+      if(d){ await d.save({filename:name,data:blob}); toast("บันทึกไฟล์แล้ว"); return; }
+    }catch(e){ if(e&&e.code==="declined") return; toast("บันทึกไฟล์ไม่ได้ในหน้านี้"); return; }
+  }
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000); toast("บันทึก "+name+" แล้ว");
+}
+async function sheetCanvas(){
+  await loadScript(LIBS.h2c);
+  const el=$("#pl");
+  return window.html2canvas(el,{scale:2,backgroundColor:S.sheet.dark?"#0b0b0c":"#ffffff",useCORS:true,logging:false});
+}
+const stamp=()=>new Date().toISOString().slice(0,10);
+function tableRows(){
+  const rows=[["ประเภท","โปรแกรม","ราคา (บาท)","คิดต่อ","สัญญาขั้นต่ำ (เดือน)","ได้ใช้ (ครั้ง)","ตกครั้งละ (บาท)","ถูกกว่าคลินิก","รายละเอียด"]];
+  plData().forEach(({g,items})=>items.forEach(it=>rows.push([GROUPS[g].label,it.p.name,it.price,it.p.per,n(it.p.minTerm)||"",usesOf(it.p)||"",it.per!=null?Math.round(it.per):"",it.save!=null?Math.round(it.save*100)+"%":"",it.p.desc||""])));
+  return rows;
+}
+async function exportAs(f){
+  try{
+    if(f==="png"){ toast("กำลังสร้างรูป…"); const c=await sheetCanvas(); c.toBlob(b=>saveFile(b,`Normatec-PriceList-${stamp()}.png`),"image/png"); }
+    else if(f==="share"){
+      toast("กำลังเตรียมรูป…"); const c=await sheetCanvas();
+      c.toBlob(async b=>{ const file=new File([b],`Normatec-PriceList-${stamp()}.png`,{type:"image/png"});
+        if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:"ใบราคา Normatec"}); }catch(e){} }
+        else saveFile(b,file.name); },"image/png");
+    }
+    else if(f==="pdf"){
+      toast("กำลังสร้าง PDF…"); const c=await sheetCanvas(); await loadScript(LIBS.pdf);
+      const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"pt",format:"a4"});
+      const W=doc.internal.pageSize.getWidth(), Hh=doc.internal.pageSize.getHeight(), m=24;
+      const w=W-m*2, h=c.height*w/c.width;
+      let y=0; const pageH=Hh-m*2;
+      while(y < h){
+        if(y>0) doc.addPage();
+        const sliceH=Math.min(pageH, h-y), sc=c.width/w;
+        const part=document.createElement("canvas"); part.width=c.width; part.height=Math.ceil(sliceH*sc);
+        part.getContext("2d").drawImage(c,0,Math.floor(y*sc),c.width,part.height,0,0,c.width,part.height);
+        doc.addImage(part.toDataURL("image/jpeg",.92),"JPEG",m,m,w,sliceH); y+=pageH;
+      }
+      saveFile(doc.output("blob"),`Normatec-PriceList-${stamp()}.pdf`);
+    }
+    else if(f==="csv"){
+      const csv=tableRows().map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+      saveFile(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}),`Normatec-PriceList-${stamp()}.csv`);
+    }
+    else if(f==="xlsx"||f==="planxlsx"){
+      toast("กำลังสร้าง Excel…"); await loadScript(LIBS.xlsx);
+      const X=window.XLSX, wb=X.utils.book_new(), R=compute();
+      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([[`ใบราคา Normatec · ราคา ณ ${todayTH()}`],[],...tableRows()]),"ใบราคา");
+      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["เดือน","รายได้","ค่าใช้จ่าย","กำไร","เงินสะสม"],...R.series.map(m=>[m.i,Math.round(m.rev),Math.round(m.rev-m.net),Math.round(m.net),Math.round(m.cum)])]),"แผนการเงิน");
+      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["สรุป",""],["ลงทุน",Math.round(R.invest)],["จำนวนเครื่อง",R.count],["รายได้/เดือน",Math.round(R.st.rev)],["กำไร/เดือน",Math.round(R.st.net)],["คืนทุน (เดือน)",R.payback==null?"ยังไม่คืนทุน":+R.payback.toFixed(1)]]),"สรุป");
+      X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["ผู้ให้บริการ","รายการ","ประเภท","ประเทศ","ราคา","สกุลเงิน","จำนวน","หน่วย","บาท/วัน","บาท/30 นาที","แหล่งที่มา","หมายเหตุ"],...S.refs.map(r=>[r.name,r.item||"",REF_KINDS[r.kind]||r.kind,r.country,n(r.price),r.currency,n(r.qty),UNITS[r.unit]||r.unit,refPerDay(r)?Math.round(refPerDay(r)):"",refPer30(r)?Math.round(refPer30(r)):"",r.url||"",r.note||""])]),"ข้อมูลตลาด");
+      const buf=X.write(wb,{bookType:"xlsx",type:"array"});
+      saveFile(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),`Normatec-${f==="planxlsx"?"Plan":"PriceList"}-${stamp()}.xlsx`);
+    }
+    else if(f==="json"){ saveFile(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}),`normatec-backup-${stamp()}.json`); }
+  }catch(e){ toast("ทำไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่"); }
+}
+function importFile(e){
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{ try{ const x=JSON.parse(rd.result); snapshotForUndo(); S=migrate(x); undoArmed=true; scheduleSave(); render(false); toast("นำเข้าข้อมูลแล้ว"); }catch(err){ toast("ไฟล์ไม่ถูกต้อง"); } };
+  rd.readAsText(f);
+}
+async function b64encode(str){
+  const bytes=new TextEncoder().encode(str);
+  let data=bytes;
+  if(window.CompressionStream){ data=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer()); }
+  let s=""; data.forEach(b=>s+=String.fromCharCode(b));
+  return (window.CompressionStream?"z":"p")+btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+async function b64decode(t){
+  const mode=t[0], b=t.slice(1).replace(/-/g,"+").replace(/_/g,"/");
+  const bin=atob(b), arr=Uint8Array.from(bin,c=>c.charCodeAt(0));
+  if(mode==="z"){ return new TextDecoder().decode(await new Response(new Blob([arr]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); }
+  return new TextDecoder().decode(arr);
+}
+async function shareLink(){
+  const code=await b64encode(JSON.stringify(S));
+  const url=location.href.split("#")[0]+"#import="+code;
+  if(navigator.share){ try{ await navigator.share({title:"ข้อมูล Normatec Planner",url}); return; }catch(e){} }
+  const box=$("#linkBox"); box.hidden=false; box.value=url;
+  try{ await navigator.clipboard.writeText(url); toast("คัดลอกลิงก์แล้ว เปิดลิงก์นี้บนอีกเครื่อง"); }catch(e){ box.select(); toast("เลือกลิงก์ไว้แล้ว กดคัดลอก"); }
+}
+async function checkImportHash(){
+  const h=location.hash; if(!h.startsWith("#import=")) return;
+  try{
+    const x=JSON.parse(await b64decode(h.slice(8)));
+    openSheet("นำเข้าข้อมูลจากลิงก์", `<p>ลิงก์นี้มีข้อมูลแผน Normatec (${(x.programs||[]).length} โปรแกรม · ${(x.clubs||[]).length} สโมสร · ${(x.refs||[]).length} แหล่งอ้างอิง) ต้องการแทนที่ข้อมูลในเครื่องนี้หรือไม่?</p>`,
+      `<button class="btn ghost sm" data-act="closeSheet">ไม่ใช่ตอนนี้</button><button class="btn sm" data-act="confirmImport">แทนที่ข้อมูล</button>`);
+    window.__pendingImport=x;
+  }catch(e){ toast("ลิงก์ข้อมูลไม่สมบูรณ์"); }
+  try{ history.replaceState(null,"","#"+page); }catch(e){}
+}
+
+/* ================= events ================= */
+function applyInput(el){
+  const k=el.dataset.k; if(!k) return false;
+  let v = el.dataset.t==="b" ? el.checked : el.dataset.t==="n" ? (el.value===""?0:Number(el.value)) : el.value;
+  if(el.dataset.t==="n" && !isFinite(v)) return false;
+  setPath(S,k,v);
+  const mm=k.match(/^clubs\.(\d+)\.status$/); if(mm){ const s=STATUS.find(x=>x.k===v); if(s) S.clubs[+mm[1]].prob=s.prob; }
+  return true;
+}
+document.addEventListener("click", async e=>{
+  if(e.target.closest("[data-stop]")) return;
+  const t=e.target.closest("[data-go],[data-act],[data-flt]"); if(!t) return;
+  if(t.dataset.go){ closeSheet(); go(t.dataset.go); return; }
+  if(t.dataset.flt){ flt[t.dataset.flt]=t.dataset.v; render(false); return; }
+  const a=t.dataset.act, i=+t.dataset.i;
+  switch(a){
+    case "inc": case "dec": {
+      const box=t.closest(".stepper"), inp=$("input",box), k=box.dataset.k;
+      const cur=n(getPath(S,k)), stepA=box.dataset.step;
+      const step = stepA==="auto" ? priceStep(cur) : n(stepA)||1;
+      let v = a==="inc" ? cur+step : cur-step;
+      v = Math.max(n(box.dataset.min), Math.round(v*100)/100);
+      mutate(()=>setPath(S,k,v));
+      inp.value=v; inp.classList.remove("flash"); void inp.offsetWidth; inp.classList.add("flash");
+      if(k.startsWith("programs.")) softRerender();
+      break; }
+    case "setPrice": mutate(()=>{S.programs[i].price=n(t.dataset.v);},{render:true}); toast("ตั้งราคาแล้ว"); pulse(`[data-pid="${S.programs[i].id}"]`); break;
+    case "applyAll": {
+      const R=compute(), mode=t.dataset.mode;
+      mutate(()=>S.programs.forEach(p=>{ const sg=suggestFor(p,R); p.price = mode==="market"?sg.byMarket : mode==="cost"?sg.byCost : sg.value; }),{render:true});
+      toast("ปรับราคาทุกโปรแกรมแล้ว · กดย้อนกลับได้"); break; }
+    case "showBasis": basisSheet(i); break;
+    case "pricingRules": rulesSheet(); break;
+    case "editProgram": editProgram(i); break;
+    case "addProgram": addProgramSheet(); break;
+    case "addProgramType": {
+      const g=t.dataset.g;
+      const tpl={rent:{name:"เช่าใหม่ · 2 วัน",price:790,per:"ครั้ง",qty:2,useType:"days",use:2.5,uses:3,handovers:1,revShare:0},
+        sub:{name:"สมาชิกใหม่",price:2990,per:"เดือน",qty:1,useType:"days",use:8,uses:8,handovers:2,revShare:0},
+        club:{name:"แพ็กเกจสโมสรใหม่",price:990,per:"เดือน",qty:10,useType:"sessions",use:4,uses:4,handovers:0,revShare:15},
+        session:{name:"รอบบริการใหม่",price:300,per:"ครั้ง",qty:20,useType:"sessions",use:1,uses:1,handovers:0,revShare:15}}[g];
+      mutate(()=>S.programs.push(Object.assign({id:uid("p"),on:true,group:g,minTerm:0,desc:""},tpl)));
+      flt.progGroup="all"; closeSheet(); setTimeout(()=>{ if(page!=="pricing") page="pricing"; render(false); editProgram(S.programs.length-1); },280); break; }
+    case "dupProgram": mutate(()=>{ const c=clone(S.programs[i]); c.id=uid("p"); c.name+=" (สำเนา)"; S.programs.splice(i+1,0,c); }); closeSheet(); break;
+    case "delProgram": mutate(()=>S.programs.splice(i,1)); closeSheet(); toast("ลบแล้ว · กดย้อนกลับได้"); break;
+    case "delItem": mutate(()=>S[t.dataset.list].splice(i,1)); closeSheet(); toast("ลบแล้ว · กดย้อนกลับได้"); break;
+    case "del": mutate(()=>S[t.dataset.list].splice(i,1),{render:true}); break;
+    case "addRow": mutate(()=>S[t.dataset.list].push({name:"รายการใหม่",amount:0}),{render:true}); break;
+    case "editClub": editClub(i); break;
+    case "nextStatus": {
+      e.stopPropagation();
+      const order=["target","contact","trial","won"]; const c=S.clubs[i]; const k=order[(order.indexOf(c.status)+1)%order.length]||"target";
+      mutate(()=>{ c.status=k; c.prob=STATUS.find(s=>s.k===k).prob; },{render:true}); toast(`${c.name}: ${STATUS.find(s=>s.k===k).label}`); break; }
+    case "addClub": {
+      mutate(()=>S.clubs.unshift({id:uid("c"),name:"สโมสรใหม่",type:"วิ่ง",area:"",status:"target",prob:10,members:0,seats:10,programId:(S.programs.find(p=>p.group==="club")||S.programs[0]||{}).id||"",contact:"",note:"",url:""}),{render:true});
+      flt.clubStatus="all"; editClub(0); break; }
+    case "addRef": {
+      mutate(()=>S.refs.unshift({id:uid("r"),name:"แหล่งใหม่",item:"",kind:"rent",country:"ไทย",price:0,currency:"THB",qty:1,unit:"day",minutes:30,inAvg:false,bench:true,url:"",note:"",date:stamp()}),{render:true});
+      flt.refScope="all"; flt.refKind="all"; editRef(0); break; }
+    case "editRef": editRef(i); break;
+    case "goMarket": closeSheet(); go("market"); break;
+    case "setLocal": mutate(()=>S.market.localFactor=n(t.dataset.v),{render:true}); break;
+    case "setMachinePrice": mutate(()=>S.machine.price=n(t.dataset.v),{render:true}); break;
+    case "machines": mutate(()=>S.machine.count=Math.max(1,n(S.machine.count)+n(t.dataset.d)),{render:true}); toast(`ตอนนี้ ${S.machine.count} เครื่อง`); break;
+    case "setMachines": mutate(()=>S.machine.count=n(t.dataset.v),{render:true}); break;
+    case "resetWhatIf": mutate(()=>S.whatIf={price:100,demand:100},{render:true}); break;
+    case "sheetOpt": { const k=t.dataset.k, v=t.dataset.v; mutate(()=>S.sheet[k]= v==="true"?true: v==="false"?false: v,{render:true}); break; }
+    case "sheetToggle": { const id=t.dataset.id; mutate(()=>{ const h=S.sheet.hidden||(S.sheet.hidden=[]); const j=h.indexOf(id); j>=0?h.splice(j,1):h.push(id); },{render:true}); break; }
+    case "sheetText": sheetTextSheet(); break;
+    case "exp": exportAs(t.dataset.f); break;
+    case "print": window.print(); break;
+    case "moreMenu": openSheet("เพิ่มเติม", `<div class="tpl">${PAGES.filter(p=>!p.bot).map(p=>`<button data-go="${p.k}"><b>${p.label}</b><span class="hint">${{market:"ราคาคู่แข่งและแหล่งอ้างอิง",costs:"ราคาเครื่อง ค่าใช้จ่าย ตารางรายเดือน",config:"ติดตั้งแอป ย้ายข้อมูล อัตราแลกเปลี่ยน"}[p.k]}</span></button>`).join("")}</div>`); break;
+    case "closeSheet": closeSheet(); break;
+    case "shareLink": shareLink(); break;
+    case "confirmImport": snapshotForUndo(); S=migrate(window.__pendingImport); undoArmed=true; scheduleSave(); closeSheet(); render(false); toast("นำเข้าข้อมูลแล้ว"); break;
+    case "install": if(window.__bip){ window.__bip.prompt(); window.__bip=null; t.hidden=true; } break;
+    case "askReset": $("#resetConfirm").hidden=false; break;
+    case "cancelReset": $("#resetConfirm").hidden=true; break;
+    case "doReset": mutate(()=>{ const keep={clubs:S.clubs,refs:S.refs}; S=Object.assign(clone(DEFAULT),keep); },{render:true}); toast("คืนค่าแล้ว · กดย้อนกลับได้"); break;
+  }
+});
+function pulse(sel){ setTimeout(()=>{ const el=$(sel); if(el){ el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); } },30); }
+let softT=null;
+function softRerender(){ clearTimeout(softT); softT=setTimeout(()=>{ if(!document.activeElement || !document.activeElement.closest || !document.activeElement.closest(".stepper input")) render(false); },650); }
+document.addEventListener("keydown", e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="z" && !e.shiftKey && !(e.target.matches&&e.target.matches("input[type=text],textarea"))){ e.preventDefault(); undo(); }
+  if(e.key==="Escape") closeSheet();
+  if(e.key==="Enter" && e.target.matches && e.target.matches('[role="button"]')) e.target.click();
+});
+document.addEventListener("input", e=>{
+  const el=e.target; if(!el.dataset||!el.dataset.k||el.tagName==="SELECT"||el.type==="checkbox"||el.type==="file") return;
+  snapshotForUndo();
+  if(applyInput(el)){ rearmUndo(); scheduleSave(); refresh(); if(el.type==="range") updateSliderText(); }
+});
+function updateSliderText(){ /* text outputs are refreshed by refresh() */ }
+document.addEventListener("change", e=>{
+  const el=e.target; if(!el.dataset||!el.dataset.k) return;
+  if(el.tagName==="SELECT"||el.type==="checkbox"){ snapshotForUndo(); if(applyInput(el)){ rearmUndo(); scheduleSave(); if(el.dataset.rr && $(".sheet")){ const title=$(".sheet-head h3").textContent; const m=el.dataset.k.match(/^(\w+)\.(\d+)\./); if(m){ const fn={programs:editProgram,clubs:editClub,refs:editRef}[m[1]]; if(fn){ $("#layer").innerHTML=""; fn(+m[2]); $(".sheet").classList.add("show"); $(".scrim").classList.add("show"); } } } else if(!$(".sheet")) render(false); else refresh(); } }
+  else if(el.dataset.t==="n" && el.closest(".prog")) render(false);
+});
+$("#undoBtn").addEventListener("click", undo);
+window.addEventListener("hashchange", ()=>{ const h=location.hash.slice(1); if(h.startsWith("import=")) checkImportHash(); else if(h && h!==page) go(h); });
+try{ matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>render(false)); }catch(e){}
+new MutationObserver(()=>render(false)).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+function isStandalone(){ return matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true; }
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); window.__bip=e; const b=$("#installBtn"); if(b) b.hidden=false; });
+
+/* ================= boot ================= */
+if(isStandalone()) document.documentElement.classList.add("standalone");
+const h0=location.hash.slice(1);
+page = PAGES.some(p=>p.k===h0) ? h0 : "summary";
+render(true);
+connect();
+checkImportHash();
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(reg=>{
+    reg.addEventListener("updatefound",()=>{ const w=reg.installing; w&&w.addEventListener("statechange",()=>{ if(w.state==="installed" && navigator.serviceWorker.controller) toast("มีเวอร์ชันใหม่ · ปิดแล้วเปิดแอปอีกครั้งเพื่ออัปเดต"); }); });
+  }).catch(()=>{}));
+}
+})();
+</script>
+
+</body>
+</html>
