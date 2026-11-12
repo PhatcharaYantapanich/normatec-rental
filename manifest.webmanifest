@@ -1,9 +1,9 @@
 {
- "name": "Normatec Rental Planner",
+ "name": "Normatec Pricing",
  "short_name": "Normatec",
- "description": "วางแผนธุรกิจให้เช่าเครื่อง Normatec: ตั้งราคา ใบราคา ลูกค้า ต้นทุน และคืนทุน",
+ "description": "ตั้งราคาเช่า Normatec ตามระยะเวลา เทียบราคาอ้างอิง และดูความคุ้ม",
  "lang": "th",
- "start_url": "./#summary",
+ "start_url": "./",
  "scope": "./",
  "id": "./",
  "display": "standalone",
@@ -42,7 +42,7 @@
  "shortcuts": [
   {
    "name": "ตั้งราคา",
-   "url": "./#pricing",
+   "url": "./#price",
    "icons": [
     {
      "src": "icons/icon-192.png",
@@ -51,8 +51,8 @@
    ]
   },
   {
-   "name": "ใบราคา",
-   "url": "./#sheet",
+   "name": "เปรียบเทียบ",
+   "url": "./#compare",
    "icons": [
     {
      "src": "icons/icon-192.png",
